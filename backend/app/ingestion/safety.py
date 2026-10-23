@@ -132,3 +132,41 @@ def plan_extraction(archive: zipfile.ZipFile) -> list[tuple[zipfile.ZipInfo, str
     if not accepted:
         raise UnsafeArchive("archive contains no importable files")
     return accepted
+
+
+def plan_folder(entries: list[tuple[str, int]]) -> list[tuple[int, str]]:
+    """Decide which files of a folder upload may be written, or raise UnsafeArchive.
+
+    `entries` are (path inside the folder, size in bytes) in upload order. The rules
+    are `plan_extraction`'s: a dangerous path rejects the whole upload, ignored paths
+    are dropped. Returns (entry index, clean relative path) pairs.
+    """
+    accepted: list[tuple[int, str]] = []
+    seen: set[str] = set()
+    total = 0
+
+    for index, (name, size) in enumerate(entries):
+        relative = safe_member_path(name)
+
+        # Case-folded, because on Windows `A.py` and `a.py` are one file and the
+        # second write would silently replace the first.
+        if relative.casefold() in seen:
+            raise UnsafeArchive(f"duplicate path in upload: {name!r}")
+        seen.add(relative.casefold())
+
+        total += size
+        if total > MAX_EXTRACTED_BYTES:
+            raise UnsafeArchive(
+                f"upload is larger than {MAX_EXTRACTED_BYTES // (1024 * 1024)} MB"
+            )
+
+        if is_ignored(relative):
+            continue
+
+        accepted.append((index, relative))
+        if len(accepted) > MAX_FILES:
+            raise UnsafeArchive(f"upload holds more than {MAX_FILES} files")
+
+    if not accepted:
+        raise UnsafeArchive("upload contains no importable files")
+    return accepted

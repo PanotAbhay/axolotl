@@ -5,7 +5,7 @@ resulting graph to Atlas.
 
 Two rules that are not negotiable:
 
-  - **Only allowlisted fixtures are executable.** A ZIP upload gets
+  - **Only allowlisted fixtures are executable.** A ZIP or folder upload gets
     `executable=False` and can never be migrated (§0.5); asking for a plan on one is
     a 409 `REPOSITORY_NOT_EXECUTABLE`.
   - **The snapshot is written once and never again.** Dev 4 copies from it; nobody
@@ -34,6 +34,7 @@ from app.ingestion.safety import (
     UnsafeArchive,
     is_ignored,
     plan_extraction,
+    plan_folder,
 )
 from app.models.contracts import RepositoryRecord
 from app.persistence import graphstore
@@ -106,13 +107,17 @@ async def import_repository(
     *,
     zip_path: Path | None = None,
     demo_fixture_id: str | None = None,
+    folder: list[tuple[str, bytes]] | None = None,
     name: str | None = None,
 ) -> RepositoryRecord:
-    """SHARED_CONTRACTS §8. Exactly one of `zip_path` or `demo_fixture_id`."""
-    if bool(zip_path) == bool(demo_fixture_id):
+    """SHARED_CONTRACTS §8. Exactly one of `zip_path`, `demo_fixture_id` or `folder`.
+
+    `folder` is an uploaded directory as (path inside the folder, content) pairs.
+    """
+    if sum(bool(source) for source in (zip_path, demo_fixture_id, folder)) != 1:
         raise AppError(
             VALIDATION_ERROR,
-            "Provide exactly one of a ZIP upload or a demo_fixture_id",
+            "Provide exactly one of a ZIP upload, a folder upload or a demo_fixture_id",
             status_code=422,
         )
 
@@ -130,7 +135,8 @@ async def import_repository(
     try:
         return await _import_into(
             destination, repository_id,
-            zip_path=zip_path, demo_fixture_id=demo_fixture_id, name=name,
+            zip_path=zip_path, demo_fixture_id=demo_fixture_id, folder=folder,
+            name=name,
         )
     except BaseException:
         # A rejected archive, nothing importable, or Atlas dropping mid-import: the
@@ -150,7 +156,8 @@ async def _require_database() -> None:
 
 async def _import_into(
     destination: Path, repository_id: str, *,
-    zip_path: Path | None, demo_fixture_id: str | None, name: str | None,
+    zip_path: Path | None, demo_fixture_id: str | None,
+    folder: list[tuple[str, bytes]] | None, name: str | None,
 ) -> RepositoryRecord:
 
     if demo_fixture_id:
@@ -159,6 +166,10 @@ async def _import_into(
         copied = _copy_tree(source, destination)
         origin, executable = "demo_fixture", True
         display_name = name or DEMO_FIXTURES[demo_fixture_id]["name"]
+    elif folder:
+        copied = _write_folder(folder, destination)
+        origin, executable = "folder_upload", False
+        display_name = name or "uploaded-folder"
     else:
         copied = _extract_zip(zip_path, destination)
         origin, executable = "zip_upload", False
@@ -309,6 +320,25 @@ def _extract_zip(zip_path: Path | None, destination: Path) -> list[str]:
         raise AppError(
             VALIDATION_ERROR, "Upload is not a valid ZIP archive", status_code=422
         ) from exc
+    return copied
+
+
+def _write_folder(folder: list[tuple[str, bytes]], destination: Path) -> list[str]:
+    """Write an untrusted folder upload. Every rejection is an explicit 422 (T-02)."""
+    try:
+        planned = plan_folder([(path, len(data)) for path, data in folder])
+    except UnsafeArchive as exc:
+        raise AppError(
+            VALIDATION_ERROR, f"Upload rejected: {exc}", status_code=422,
+            details={"reason": str(exc)},
+        ) from exc
+
+    copied: list[str] = []
+    for index, relative in planned:
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(folder[index][1])
+        copied.append(relative)
     return copied
 
 

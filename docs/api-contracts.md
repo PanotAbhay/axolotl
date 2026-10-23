@@ -73,7 +73,7 @@ All ✅ — implemented and exercised against the real cluster.
 | Endpoint | Response |
 |---|---|
 | `GET /demo-fixtures` | `[{demo_fixture_id, name, description}]` |
-| `POST /repositories/import` | `RepositoryRecord` — multipart `file` (ZIP) **or** `{demo_fixture_id, name?}` |
+| `POST /repositories/import` | `RepositoryRecord` — multipart `files` + one `paths` entry each (a folder), multipart `file` (ZIP), **or** `{demo_fixture_id, name?}` |
 | `GET /repositories` | `RepositoryRecord[]` — **newest first** |
 | `GET /repositories/{repo_id}` | `RepositoryRecord` |
 | `GET /repositories/{repo_id}/graph?level=module&run_id=` | `GraphPayload` |
@@ -83,7 +83,8 @@ All ✅ — implemented and exercised against the real cluster.
 | `POST /repositories/{repo_id}/index` | `{chunks, described, embedded, warnings}` |
 
 Import sets `executable=True` **only** for the allowlisted fixture `legacy_orders`.
-ZIP uploads get `executable=False` and can never run.
+Folder and ZIP uploads get `executable=False` and can never run. A folder upload's
+`paths` are relative to the folder and pass the same checks as ZIP member names.
 
 ### Search
 

@@ -132,6 +132,38 @@ async def test_a_zip_upload_is_never_executable(store, tmp_path):
     assert record.demo_fixture_id is None
 
 
+async def test_a_folder_upload_is_analysed_but_never_executable(store, tmp_path):
+    """The chess demo is uploaded as its folder, not a ZIP. Analysed, never run."""
+    from app.ingestion.runtime import inspect_runtime
+
+    chess = ingestion.repo_root() / "demo" / "chess"
+    if not chess.is_dir():
+        pytest.skip("chess source not present")
+    folder = [
+        (path.relative_to(chess).as_posix(), path.read_bytes())
+        for path in sorted(chess.rglob("*"))
+        if path.is_file()
+    ]
+
+    record = await ingestion.import_repository(folder=folder, name="chess")
+
+    assert record.origin == "folder_upload"
+    assert record.executable is False
+    assert record.name == "chess"
+    assert record.module_count > 10
+    assert inspect_runtime(tmp_path / record.repository_id)["declared_python"] == "2.7"
+
+
+async def test_importing_both_a_folder_and_a_fixture_is_refused(store):
+    from app.errors import AppError
+
+    with pytest.raises(AppError) as caught:
+        await ingestion.import_repository(
+            folder=[("mod.py", b"x = 1\n")], demo_fixture_id="legacy_orders"
+        )
+    assert caught.value.status_code == 422
+
+
 async def test_the_snapshot_hash_is_reproducible(store):
     """T-09 rests on this: the same tree must always hash the same, or 'unchanged
     baseline' means nothing."""

@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from app import graph as graph_service
 from app import ingestion
 from app.errors import VALIDATION_ERROR, AppError
+from app.ingestion.safety import MAX_EXTRACTED_BYTES
 from app.models.contracts import GraphPayload, ModuleDetail, RepositoryRecord
 from app.persistence.routing import DatabaseAwareRoute
 
@@ -33,8 +34,13 @@ log = logging.getLogger(__name__)
 router = APIRouter(tags=["repositories"], route_class=DatabaseAwareRoute)
 
 # Module-level singletons: calling File()/Form() inline in a default is a ruff B008.
-_OPTIONAL_FILE = File(None)
-_OPTIONAL_FORM = Form(None)
+# One per parameter: FastAPI binds a shared one to the first parameter's field name,
+# which silently dropped `name` and read `paths` as a single value.
+_FILE = File(None)
+_FILES = File(None)
+_PATHS = Form(None)
+_DEMO_FIXTURE_ID = Form(None)
+_NAME = Form(None)
 
 
 class ImportFixtureRequest(BaseModel):
@@ -50,15 +56,28 @@ async def list_demo_fixtures() -> list[dict[str, str]]:
 @router.post("/repositories/import")
 async def import_repository(
     request: Request,
-    file: UploadFile | None = _OPTIONAL_FILE,
-    demo_fixture_id: str | None = _OPTIONAL_FORM,
-    name: str | None = _OPTIONAL_FORM,
+    file: UploadFile | None = _FILE,
+    files: list[UploadFile] | None = _FILES,
+    paths: list[str] | None = _PATHS,
+    demo_fixture_id: str | None = _DEMO_FIXTURE_ID,
+    name: str | None = _NAME,
 ) -> RepositoryRecord:
-    """Import a ZIP upload or an allowlisted demo fixture.
+    """Import a ZIP upload, a folder upload or an allowlisted demo fixture.
 
     Accepts either a multipart upload or a JSON body, because §6 specifies both and
-    the frontend uses the JSON form for the fixture.
+    the frontend uses the JSON form for the fixture. A folder is multipart `files`
+    with a matching `paths` entry for each, giving its path inside the folder.
     """
+    if files:
+        if file is not None or demo_fixture_id is not None:
+            raise AppError(
+                VALIDATION_ERROR,
+                "Send a folder upload on its own, not with a ZIP or a demo_fixture_id",
+                status_code=422,
+            )
+        folder = await _read_folder(files, paths or [])
+        return await ingestion.import_repository(folder=folder, name=name)
+
     if file is None and demo_fixture_id is None:
         demo_fixture_id, name = await _fixture_from_json(request)
 
@@ -75,6 +94,37 @@ async def import_repository(
     return await ingestion.import_repository(
         demo_fixture_id=demo_fixture_id, name=name
     )
+
+
+async def _read_folder(
+    files: list[UploadFile], paths: list[str]
+) -> list[tuple[str, bytes]]:
+    """Pair each uploaded file with its path, refusing more than the size limit.
+
+    Each read is capped at what is left of the limit, so an oversized upload is
+    refused without being held in memory.
+    """
+    if len(paths) != len(files):
+        raise AppError(
+            VALIDATION_ERROR,
+            "A folder upload needs exactly one `paths` entry per file",
+            status_code=422,
+            details={"files": len(files), "paths": len(paths)},
+        )
+
+    folder: list[tuple[str, bytes]] = []
+    remaining = MAX_EXTRACTED_BYTES
+    for upload, path in zip(files, paths, strict=True):
+        data = await upload.read(remaining + 1)
+        remaining -= len(data)
+        if remaining < 0:
+            raise AppError(
+                VALIDATION_ERROR,
+                f"Upload is larger than {MAX_EXTRACTED_BYTES // (1024 * 1024)} MB",
+                status_code=422,
+            )
+        folder.append((path, data))
+    return folder
 
 
 async def _fixture_from_json(request: Request) -> tuple[str, str | None]:

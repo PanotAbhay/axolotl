@@ -1561,3 +1561,35 @@ build prints a chunk-size warning.
   [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) summarises what was built and by
   whom.
 - The new repository allows squash merges only and deletes head branches on merge.
+
+---
+
+## Dev 1: folder upload replaces the ZIP in the UI
+
+The demo uploads the chess project as its folder, not as a ZIP.
+
+- **API.** `POST /repositories/import` also accepts multipart `files` with one `paths`
+  entry each, giving the file's path inside the folder. ZIP and fixture imports are
+  unchanged.
+- **Same checks as a ZIP.** `safety.plan_folder` runs every path through
+  `safe_member_path` (traversal, absolute and drive-letter paths, depth) and applies
+  the 50 MB, 500-file and ignore rules. A duplicate path is refused, case-insensitively,
+  because on Windows the second file would overwrite the first. A bad path rejects the
+  whole upload and nothing is written.
+- **Still static only.** A folder upload is `origin="folder_upload"`,
+  `executable=False`. **SHARED_CONTRACTS §11, additive:** `folder_upload` is a new value
+  of `RepositoryRecord.origin`, in §4, `contracts.py` and `contracts.ts`. Needs acks.
+- **UI.** 01 New migration's "Upload a ZIP" is now "Upload a folder". Hidden files
+  (`.env`, `.git`, `.venv`) and `__pycache__` are never sent. Overview labels the origin.
+  `demo/package_chess.py` is deleted; pick `demo/chess` directly.
+
+### A bug found on the way: the project name on every upload was discarded
+
+The route shared one `Form(None)` default between `demo_fixture_id` and `name`.
+FastAPI bound both to the first parameter's field, so the name typed on the upload
+screen never arrived and the API fell back to the file name. Shown on main: a ZIP sent
+with `name=my-project` was saved as `chess`. Each parameter now has its own default,
+and `test_a_zip_upload_keeps_its_project_name` pins it.
+
+560 offline backend tests (16 new), ruff clean; frontend lint, build and 5 tests pass.
+Not yet exercised in a real browser against a live backend.

@@ -4,10 +4,26 @@ import { cn } from 'cn';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { importRepository, listDemoFixtures } from '@/api/client';
+import { importRepository, listDemoFixtures, type FolderUpload } from '@/api/client';
 import { Button } from '@/components/ui/button';
 
-const ZIP = 'zip';
+const FOLDER = 'folder';
+
+/** Never sent: hidden files and folders (`.env`, `.git`, `.venv`) and build caches. The API drops them anyway. */
+const SKIPPED = /(^|\/)(\.[^/]*|__pycache__|node_modules)(\/|$)/;
+
+/**
+ * A folder picker names files `chess/board.py`. The API wants paths inside the folder
+ * (`board.py`), and the folder's own name is the default project name.
+ */
+function toFolder(picked: File[]): (FolderUpload & { name: string }) | null {
+  const name = picked[0]?.webkitRelativePath.split('/')[0];
+  if (!name) return null;
+  const files = picked
+    .map((file) => ({ file, path: file.webkitRelativePath.split('/').slice(1).join('/') }))
+    .filter(({ path }) => !SKIPPED.test(path));
+  return { name, files };
+}
 
 /** One radio row. The checked row gets the ink outline; an error on it turns the outline red. */
 function Choice({ value, checked, onPick, title, error, children }: {
@@ -47,18 +63,21 @@ function Choice({ value, checked, onPick, title, error, children }: {
   );
 }
 
-/** 01 New migration: import the demo fixture or a ZIP. Errors are the API's own, on the choice they're about. */
+/** 01 New migration: import the demo fixture or a folder. Errors are the API's own, on the choice they're about. */
 export default function NewMigration() {
   const navigate = useNavigate();
   const fixtures = useQuery({ queryKey: ['demo-fixtures'], queryFn: listDemoFixtures });
   const [picked, setPicked] = useState<string>();
-  const [file, setFile] = useState<File | null>(null);
+  const [folder, setFolder] = useState<ReturnType<typeof toFolder>>(null);
   const [name, setName] = useState('');
-  const source = picked ?? fixtures.data?.[0]?.demo_fixture_id ?? ZIP;
+  const source = picked ?? fixtures.data?.[0]?.demo_fixture_id ?? FOLDER;
   const fixture = fixtures.data?.find((f) => f.demo_fixture_id === source);
 
   const run = useMutation({
-    mutationFn: () => importRepository(source === ZIP ? file! : { demo_fixture_id: source }, name.trim() || undefined),
+    mutationFn: () =>
+      source === FOLDER
+        ? importRepository({ files: folder!.files }, name.trim() || folder!.name)
+        : importRepository({ demo_fixture_id: source }, name.trim() || undefined),
     onSuccess: (record) => navigate(`/repos/${encodeURIComponent(record.repository_id)}`),
   });
   const pick = (value: string) => {
@@ -105,18 +124,20 @@ export default function NewMigration() {
               {f.description} Trusted, so it can run in the sandbox.
             </Choice>
           ))}
-          <Choice value={ZIP} checked={source === ZIP} onPick={pick} error={errorOn(ZIP)} title="Upload a ZIP">
-            Up to 10 MB and 500 files. Static analysis only, so it can’t be migrated.
+          <Choice value={FOLDER} checked={source === FOLDER} onPick={pick} error={errorOn(FOLDER)} title="Upload a folder">
+            Pick the project folder. Up to 50 MB and 500 files. Static analysis only, so it can’t be migrated.
           </Choice>
-          {source === ZIP && (
+          {source === FOLDER && (
             <label className="flex flex-col gap-2 pt-2">
-              <span className="text-sm font-medium text-muted-foreground">Archive</span>
+              <span className="text-sm font-medium text-muted-foreground">Folder</span>
               <input
                 type="file"
-                accept=".zip,application/zip"
+                multiple
                 required
+                // Not in React's types, but every current browser supports it.
+                {...{ webkitdirectory: '' }}
                 onChange={(event) => {
-                  setFile(event.target.files?.[0] ?? null);
+                  setFolder(toFolder(Array.from(event.target.files ?? [])));
                   run.reset();
                 }}
                 className="text-sm file:mr-3 file:h-8 file:rounded-md file:border file:border-input file:bg-card file:px-3 file:font-medium file:text-foreground hover:file:bg-muted"
@@ -130,7 +151,7 @@ export default function NewMigration() {
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder={source === ZIP ? (file?.name.replace(/\.zip$/i, '') ?? 'Name of the ZIP file') : fixture?.name}
+            placeholder={source === FOLDER ? (folder?.name ?? 'Name of the folder') : fixture?.name}
             disabled={run.isPending}
             className="h-8 w-full max-w-80 rounded-sm border border-input bg-card px-2 font-mono text-sm placeholder:text-muted-foreground"
           />

@@ -12,13 +12,15 @@ import zipfile
 import pytest
 
 from app.errors import AppError
-from app.ingestion import _extract_zip
+from app.ingestion import _extract_zip, _write_folder
 from app.ingestion.safety import (
     MAX_DEPTH,
+    MAX_EXTRACTED_BYTES,
     MAX_FILES,
     UnsafeArchive,
     is_ignored,
     plan_extraction,
+    plan_folder,
     safe_member_path,
 )
 
@@ -176,3 +178,57 @@ def test_noise_and_secrets_are_ignored(path):
 )
 def test_real_source_is_not_ignored(path):
     assert is_ignored(path) is False
+
+
+# --------------------------------------------------------------------------
+# folder uploads: the same rules, applied to paths sent by the browser
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "path", ["../evil.py", "/etc/passwd", "C:/Windows/evil.py", "pkg/../../evil.py"]
+)
+def test_a_dangerous_folder_path_rejects_the_upload_and_writes_nothing(tmp_path, path):
+    destination = tmp_path / "snapshot"
+    destination.mkdir()
+    folder = [("ok.py", b"x = 1\n"), (path, b"pwned = True\n")]
+
+    with pytest.raises(AppError) as caught:
+        _write_folder(folder, destination)
+
+    assert caught.value.status_code == 422
+    assert list(tmp_path.rglob("*.py")) == []
+
+
+def test_a_folder_upload_writes_its_files_and_drops_noise(tmp_path):
+    folder = [
+        ("setup.py", b"setup()\n"),
+        ("pkg/mod.py", b"def f():\n    return 1\n"),
+        (".env", b"SECRET=1\n"),
+        ("pkg/__pycache__/mod.cpython-312.pyc", b"\x00"),
+    ]
+
+    copied = _write_folder(folder, tmp_path)
+
+    assert copied == ["setup.py", "pkg/mod.py"]
+    assert (tmp_path / "pkg" / "mod.py").read_bytes() == b"def f():\n    return 1\n"
+    assert not (tmp_path / ".env").exists()
+
+
+def test_a_duplicate_folder_path_is_rejected_whatever_its_case():
+    with pytest.raises(UnsafeArchive, match="duplicate"):
+        plan_folder([("pkg/Mod.py", 1), ("pkg/mod.py", 1)])
+
+
+def test_too_many_folder_files_is_rejected():
+    with pytest.raises(UnsafeArchive, match="more than"):
+        plan_folder([(f"m{i}.py", 1) for i in range(MAX_FILES + 1)])
+
+
+def test_an_oversized_folder_is_rejected():
+    with pytest.raises(UnsafeArchive, match="larger than"):
+        plan_folder([("a.py", MAX_EXTRACTED_BYTES), ("b.py", 1)])
+
+
+def test_a_folder_with_nothing_importable_is_rejected():
+    with pytest.raises(UnsafeArchive, match="no importable files"):
+        plan_folder([(".env", 10), ("logo.png", 10)])

@@ -43,7 +43,7 @@ class RepositoryRecord(BaseModel):
     repository_id: str
     name: str
     snapshot_hash: str
-    origin: Literal["demo_fixture", "zip_upload"]
+    origin: Literal["demo_fixture", "zip_upload", "folder_upload"]
     executable: bool                 # True only for allowlisted trusted fixtures
     demo_fixture_id: str | None = None
     file_count: int
