@@ -1,0 +1,70 @@
+{
+  "source": "Will: updated local-chess directory; original ZIP is stale",
+  "declared_python": "2.7; source also supports 3.14",
+  "files": [
+    {
+      "path": "local_chess/__init__.py",
+      "sha256": "2ee21cd7326243df077eb709e0b0eff87d61265c682d4eb6bfaba370cc2dcd52"
+    },
+    {
+      "path": "local_chess/__main__.py",
+      "sha256": "2e63ab2aaf2eca0784a4516c7917c4e893ccba9e01b13fe56f17efa844d5b319"
+    },
+    {
+      "path": "local_chess/board.py",
+      "sha256": "5da43fe3c451a17497d96f522b0d133de282dfa2ae511174741cf280e203e20f"
+    },
+    {
+      "path": "local_chess/cli.py",
+      "sha256": "1b00c515322268888907881daf60a20e4522ba0d50088b737cdf52bf2cd05a42"
+    },
+    {
+      "path": "local_chess/common.py",
+      "sha256": "65c9753a1e9a756d5a271d95cc0bd05e5ac7fa06844acc81345f654334334ba9"
+    },
+    {
+      "path": "local_chess/game.py",
+      "sha256": "90a2af62eaab9ff0ac2b90136cbdfc6d593ff399d19997ca1df048adceb2dd80"
+    },
+    {
+      "path": "local_chess/game_state.py",
+      "sha256": "e7a3cabf14cf74946fce3ac6d921ca06f24341f579e4a97df6a9cd7683afb816"
+    },
+    {
+      "path": "local_chess/legacy_enum.py",
+      "sha256": "f4fd16b62769943e034ce8cba529de461d01d8669a63a6fb7873ed6c58face59"
+    },
+    {
+      "path": "local_chess/move.py",
+      "sha256": "df8adf2fddecb98bef109f86abfa02d57b09c1951d9ef8ca7c27ef79e5461cbf"
+    },
+    {
+      "path": "local_chess/notation.py",
+      "sha256": "f18e99fcb5477e2eb90dc317d0c3cf900f546ad74d3ce57a0b48dcc33e17b4ab"
+    },
+    {
+      "path": "local_chess/pieces.py",
+      "sha256": "f969282b59d96b3468aa89af41222c65a2ef0ad78f879538c053b0dd94447074"
+    },
+    {
+      "path": "local_chess/renderer.py",
+      "sha256": "baf10aa62e6cf6a0b975585bdaab137e5f8edb17bfbfaa1bd6abba405732e77c"
+    },
+    {
+      "path": "local_chess/rules.py",
+      "sha256": "b70412869ca4b3d74764bb59fda9bb494b5509631a56550251966a1ca6eaca5e"
+    },
+    {
+      "path": "README.md",
+      "sha256": "897565797ae3421b39bc819c6bac438901b26134f684637b0f25c091dd3c38d3"
+    },
+    {
+      "path": "setup.py",
+      "sha256": "8355f7a1561d726977e8d8e8e25c1f039ed8c2101407ac963ceb0bfd806c2438"
+    },
+    {
+      "path": "tests/test_chess.py",
+      "sha256": "72b176d91bf853227db879042a4b6174834125e308728d82d48586dafcc01eb8"
+    }
+  ]
+}

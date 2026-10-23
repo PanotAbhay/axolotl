@@ -1,0 +1,170 @@
+[
+  {
+    "case_id": "case_001",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 1, "sku": "SKU-A", "unit_price": "1.25"}], "standard"],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Single line, no discount. Every rounding convention agrees here.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_002",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 1, "sku": "SKU-A", "unit_price": "2.45"}], "partner"],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Partner discount on a single line; the discounted amount lands exactly on a penny.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_003",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 1, "sku": "SKU-A", "unit_price": "1.25"}], "staff"],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Largest discount band, clean quarter price.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_004",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 2, "sku": "SKU-A", "unit_price": "10.00"}, {"quantity": 1, "sku": "SKU-B", "unit_price": "5.00"}], "member"],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Two-line basket on round prices. Per-line and whole-basket rounding agree.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_005",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 3, "sku": "SKU-C", "unit_price": "2.99"}, {"quantity": 1, "sku": "SKU-D", "unit_price": "9.99"}], "standard"],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Mixed basket at list price, no discount applied.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_006",
+    "unit_id": "unit_pricing",
+    "function": "pricing.discount_rate",
+    "args": ["member"],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Known category returns its band.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_007",
+    "unit_id": "unit_pricing",
+    "function": "pricing.discount_rate",
+    "args": ["no-such-category"],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Unknown category falls back to standard rather than raising.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_008",
+    "unit_id": "unit_pricing",
+    "function": "pricing.line_gross",
+    "args": ["2.45", -1],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Negative quantity raises ValueError. Exceptions compare on type name only.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_009",
+    "unit_id": "unit_customers",
+    "function": "customers.category_for",
+    "args": ["C-1005"],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Closed account prices as standard - deliberate, ops quote closed accounts.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_010",
+    "unit_id": "unit_customers",
+    "function": "customers.is_eligible",
+    "args": ["C-9999"],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Unknown customer is not eligible.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_011",
+    "unit_id": "unit_orders",
+    "function": "orders.place_order",
+    "args": ["C-1002", [{"quantity": 2, "sku": "SKU-A", "unit_price": "10.00"}]],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Standard customer places a two-unit order on a round price.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_012",
+    "unit_id": "unit_orders",
+    "function": "orders.place_order",
+    "args": ["C-1005", [{"quantity": 1, "sku": "SKU-A", "unit_price": "5.00"}]],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Closed account is rejected with customer_not_eligible, not an exception.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_013",
+    "unit_id": "unit_orders",
+    "function": "orders.place_order",
+    "args": ["C-1001", []],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Empty basket is rejected with no_lines.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_014",
+    "unit_id": "unit_refunds",
+    "function": "refunds.partial_refund",
+    "args": [],
+    "kwargs": {},
+    "steps": [
+      {"function": "orders.place_order", "args": ["C-1002", [{"quantity": 2, "sku": "SKU-A", "unit_price": "10.00"}, {"quantity": 1, "sku": "SKU-B", "unit_price": "5.00"}]], "kwargs": {}},
+      {"function": "refunds.partial_refund", "args": ["ORD-0001", [{"quantity": 1, "sku": "SKU-A"}]], "kwargs": {}}
+    ],
+    "visibility": "visible",
+    "description": "Place then refund one unit. Refund reprices through the same path; round prices so all conventions agree.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_015",
+    "unit_id": "unit_refunds",
+    "function": "refunds.partial_refund",
+    "args": ["ORD-9999", [{"quantity": 1, "sku": "SKU-A"}]],
+    "kwargs": {},
+    "visibility": "visible",
+    "description": "Refund against an unknown order is rejected with order_not_found.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  },
+  {
+    "case_id": "case_016",
+    "unit_id": "unit_refunds",
+    "function": "refunds.partial_refund",
+    "args": [],
+    "kwargs": {},
+    "steps": [
+      {"function": "orders.place_order", "args": ["C-1002", [{"quantity": 1, "sku": "SKU-A", "unit_price": "5.00"}]], "kwargs": {}},
+      {"function": "refunds.partial_refund", "args": ["ORD-0001", [{"quantity": 4, "sku": "SKU-A"}]], "kwargs": {}}
+    ],
+    "visibility": "visible",
+    "description": "Refunding more than was ordered is rejected with quantity_exceeds_order.",
+    "provenance": "demo/legacy_orders/tests/cases.json"
+  }
+]

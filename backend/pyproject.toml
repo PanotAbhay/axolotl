@@ -1,0 +1,50 @@
+[project]
+name = "axolotl-backend"
+version = "0.1.0"
+description = "Axolotl backend - agentic legacy migration with verified behaviour preservation"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    # Deliberate deviation from SHARED_CONTRACTS §2/§8: PyMongo's built-in async client
+    # (AsyncMongoClient) instead of Motor. Motor reached end of life in May 2026.
+    # Requires pymongo>=4.9. See BUILD_LOG.md.
+    "pymongo>=4.9",
+    "networkx>=3.3",
+    "google-genai>=2.3.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "live: tests that call real external services (Atlas, Gemini); deselect with -m 'not live'",
+    "docker: tests that run the real sandbox container; skip themselves when the runner image is absent",
+]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true

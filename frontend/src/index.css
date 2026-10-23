@@ -1,0 +1,140 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tokens come from docs/design/kit.css, the UI template. Template name -> shadcn name:
+ * ground -> background, surface -> card, ink -> foreground/primary,
+ * muted (text) -> muted-foreground, neutral-tint -> muted, border-strong -> input.
+ * Hue is reserved for run state: working, repairing, warning, passed, failed, neutral.
+ */
+@theme inline {
+  --font-sans: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --font-heading: var(--font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-grid: var(--grid);
+  --color-code: var(--code);
+  --color-working: var(--working);
+  --color-working-tint: var(--working-tint);
+  --color-repairing: var(--repairing);
+  --color-repairing-tint: var(--repairing-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-passed: var(--passed);
+  --color-passed-tint: var(--passed-tint);
+  --color-failed: var(--failed);
+  --color-failed-tint: var(--failed-tint);
+  --color-neutral: var(--neutral);
+  --color-neutral-tint: var(--neutral-tint);
+  /* The template's radius scale: 4 badges and fields, 6 buttons, 10 panels. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+}
+
+:root {
+  --background: #F5F7F9;
+  --foreground: #1B2330;
+  --card: #FFFFFF;
+  --card-foreground: #1B2330;
+  --popover: #FFFFFF;
+  --popover-foreground: #1B2330;
+  --primary: #1B2330;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EEEFF1;
+  --secondary-foreground: #1B2330;
+  --muted: #EEEFF1;
+  --muted-foreground: #566170;
+  --accent: #EEEFF1;
+  --accent-foreground: #1B2330;
+  --destructive: #B42318;
+  --border: #C9D1DB;
+  --border-strong: #858D98;
+  --input: #858D98;
+  --ring: #1B2330;
+  --grid: #E4E8ED;
+  --code: #F5F7F9;
+  --radius: 10px;
+  --working: #1F5FBF; --working-tint: #E9EFF9;
+  --repairing: #A14E00; --repairing-tint: #F6EDE6;
+  --warning: #7A5C00; --warning-tint: #FFF7D6;
+  --passed: #1B7340; --passed-tint: #E8F1EC;
+  --failed: #B42318; --failed-tint: #F8E9E8;
+  --neutral: #566170; --neutral-tint: #EEEFF1;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #151A21;
+  --foreground: #E6EAF0;
+  --card: #1C222B;
+  --card-foreground: #E6EAF0;
+  --popover: #1C222B;
+  --popover-foreground: #E6EAF0;
+  --primary: #E6EAF0;
+  --primary-foreground: #1C222B;
+  --secondary: #333A44;
+  --secondary-foreground: #E6EAF0;
+  --muted: #333A44;
+  --muted-foreground: #9AA5B4;
+  --accent: #333A44;
+  --accent-foreground: #E6EAF0;
+  --destructive: #F47C6E;
+  --border: #3A4452;
+  --border-strong: #676F7B;
+  --input: #676F7B;
+  --ring: #E6EAF0;
+  --grid: #1E252E;
+  --code: #151A21;
+  --working: #7EA8F2; --working-tint: #2E3A4F;
+  --repairing: #F0A54A; --repairing-tint: #403830;
+  --warning: #F5CD47; --warning-tint: #3D3720;
+  --passed: #5CC489; --passed-tint: #283F3C;
+  --failed: #F47C6E; --failed-tint: #433237;
+  --neutral: #9AA5B4; --neutral-tint: #333A44;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring;
+  }
+  body {
+    @apply bg-background text-foreground font-sans text-base antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2;
+  }
+}
+
+/* Monaco decoration for the symbol picked in the inspector (SourceView). */
+.source-symbol {
+  background: var(--muted);
+}

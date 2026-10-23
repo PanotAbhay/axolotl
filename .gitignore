@@ -1,0 +1,41 @@
+# secrets - never commit
+.env
+.env.local
+# Any .env variant, so a hand-made backup like `.env.bak-before-axolotl` cannot be
+# swept up by `git add -A`. It holds the same live key and connection string the real
+# `.env` does. `.env.example` is placeholders only, so it stays visible.
+.env.*
+!.env.example
+*.pem
+
+# python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# node
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# runtime workspaces and artefacts (SHARED_CONTRACTS §10 WORKSPACE_ROOT)
+.axolotl_workspaces/
+# pre-rename name; keep ignored until nobody has one left over
+.ghostspec_workspaces/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Generated chess upload archive
+/demo/chess-input.zip

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>
+<title>Axolotl design boards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="kit.css">
+<style>
+/* Layout: sticky bar with the six views, then one column of frames zoomed to its width. Colour and type tokens come from kit.css. */
+html { scroll-padding-top: 72px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.bar-in { max-width: 1312px; margin: 0 auto; min-height: 56px; padding-block: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+.brand { display: flex; gap: 8px; align-items: baseline; white-space: nowrap; }
+.views { display: flex; gap: 4px; overflow-x: auto; min-width: 0; flex: 1; }
+.views a { display: flex; align-items: center; height: 40px; padding: 0 12px; font-size: 14px; font-weight: 500; color: var(--muted);
+  text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; }
+.views a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+.ctl { display: flex; gap: 8px; }
+@media (max-width: 760px) { .views { order: 3; flex-basis: 100%; } }
+.seg button { display: flex; align-items: center; padding: 0 12px; font: 500 14px "IBM Plex Sans", sans-serif; color: var(--muted);
+  background: none; border: 0; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--border-strong); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+/* Hover is colour only, 120 ms, and off under reduced motion. */
+.views a, .seg button { transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out; }
+.views a:hover { color: var(--ink); border-bottom-color: var(--border-strong); }
+.views a[aria-current="page"]:hover { border-bottom-color: var(--ink); }
+.seg button:hover:not([aria-pressed="true"]) { background: var(--neutral-tint); color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .views a, .seg button { transition: none; } }
+main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 80px; }
+.page { max-width: 1312px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px; }
+.intro { display: flex; flex-direction: column; gap: 8px; max-width: 72ch; }
+.intro h1, .fig h2, .rules h2 { text-wrap: balance; }
+.fig { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.fig figcaption { display: flex; flex-direction: column; gap: 4px; max-width: 80ch; }
+.shot { width: 100%; overflow: hidden; border: 1px solid var(--border); border-radius: 4px; background: var(--ground); }
+.zoomer { zoom: var(--z, 1); }
+.beat { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px 24px; }
+.beat dt { font-size: 14px; font-weight: 500; color: var(--muted); }
+.rules { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px 48px; }
+.rules li { display: flex; flex-direction: column; gap: 8px; max-width: 60ch; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px 48px; align-items: start; }
+.comp { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px 32px; padding-block: 24px; border-top: 1px solid var(--border); }
+.comp > div:first-child { display: flex; flex-direction: column; gap: 4px; }
+@media (max-width: 760px) { .comp { grid-template-columns: minmax(0, 1fr); } }
+.pv { min-width: 0; overflow-x: auto; padding: 4px; }
+.wrap8 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.nodes { display: flex; flex-wrap: wrap; gap: 20px 24px; }
+.nodebox { position: relative; width: 190px; height: 58px; margin: 4px; }
+.narrow { max-width: 360px; }
+.tlbox { max-width: 480px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.tbl { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.tokens td { vertical-align: top; } .tokens td .meta { display: block; margin-top: 4px; }
+.sw { width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--border-strong); flex: none; }
+.scale { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-end; }
+.space { display: block; background: var(--ink); border-radius: 1px; }
+.rad { display: block; width: 64px; height: 40px; border: 1px solid var(--border-strong); background: var(--surface); }
+.icons { display: flex; flex-wrap: wrap; gap: 16px 8px; }
+.ico { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 120px; text-align: center; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+</style>
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand"><span class="semi">Axolotl</span><span class="muted">design boards</span></div>
+    <nav class="views" id="views" aria-label="Views"></nav>
+    <div class="ctl">
+      <div class="seg" id="size" role="group" aria-label="Screen size"><button type="button" data-size="1280">1280</button><button type="button" data-size="1440">1440</button></div>
+      <div class="seg" id="theme" role="group" aria-label="Theme"><button type="button" data-set="light">Light</button><button type="button" data-set="dark">Dark</button></div>
+    </div>
+  </div>
+</header>
+<main><div class="page" id="view"></div></main>
+<script src="icons.js"></script>
+<script src="kit.js"></script>
+<script src="board.js"></script>
+<script src="viewer.js"></script>
+</body></html>

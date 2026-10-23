@@ -1,0 +1,109 @@
+name: CI
+
+# SHARED_CONTRACTS §12: "main must always boot". This is what makes that
+# enforceable rather than aspirational once five people are pushing to it.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A new push to the same PR supersedes the previous run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: backend · pytest + ruff
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      # backend/.python-version pins 3.12; uv downloads it if the runner lacks it.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check .
+
+      # -m "not live" excludes the Atlas and Gemini tests. They skip themselves
+      # without credentials, but excluding them keeps CI honest about what it
+      # actually proved: no secrets are available here, so nothing that needs a
+      # real cluster or a real model has been verified.
+      - name: Tests
+        # `docker` tests get their own job below, which builds the image first.
+        run: uv run pytest -q -m "not live and not docker"
+
+      - name: Check for leftover stubs
+        # SHARED_CONTRACTS §0.2: every *_stub must be gone before the Sat 17:00
+        # dry run. Until then this reports them without failing the build.
+        run: |
+          echo "stubs still present:"
+          grep -rn "_stub" app/ || echo "  none"
+        continue-on-error: true
+
+  sandbox:
+    name: sandbox · real container
+    runs-on: ubuntu-latest
+
+    # This is the project's central claim under test: a plausible modernisation
+    # that keeps every visible test green is still caught by the held-out
+    # differential. Worth a minute of CI rather than trusting one laptop.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the runner image
+        run: docker build -t axolotl-runner:latest runner/
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: Sandbox tests
+        working-directory: backend
+        run: uv run pytest -q -m docker
+
+  frontend:
+    name: frontend · build + lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # `tsc -b && vite build` - a type error fails the build, which is the point.
+      - name: Build
+        run: npm run build

@@ -1,0 +1,239 @@
+# API contracts
+
+Owner: Dev 2. Kept in sync with [`planning/SHARED_CONTRACTS.md`](planning/SHARED_CONTRACTS.md) §6.
+If the two disagree, SHARED_CONTRACTS wins and this file is wrong — raise it.
+
+Base URL: `http://localhost:8000/api/v1`
+Interactive docs while the backend runs: <http://localhost:8000/docs>
+
+**Status key:** ✅ implemented · 🔲 router exists, no routes yet · ⏳ needs another owner's code
+
+---
+
+## Error envelope
+
+Every error, without exception:
+
+```json
+{ "error": { "code": "SNAKE_CASE", "message": "human readable", "details": {} } }
+```
+
+FastAPI's own validation failures are rewritten into it too, so a client only ever
+parses one shape.
+
+| Code | HTTP | When |
+|---|---|---|
+| `DATABASE_UNAVAILABLE` | 503 | Atlas unreachable or `MONGODB_URI` unset. **There is no in-memory fallback** (§9). |
+| `UNSUPPORTED_TARGET` | 422 | Target unknown, or known with `supported=false` (**T-08**). |
+| `REPOSITORY_NOT_EXECUTABLE` | 409 | Plan requested for a ZIP upload; those are static-analysis only. |
+| `INTEGRATION_UNAVAILABLE` | 503 | A collaborator's function isn't implemented yet. Names the owner in `details`. |
+| `PLAN_NOT_FOUND` / `RUN_NOT_FOUND` / `ARTEFACT_NOT_FOUND` / `UNIT_NOT_FOUND` | 404 | Unknown id. |
+| `PLAN_NOT_APPROVED` | 409 | Starting a run from a plan that is still `draft`. |
+| `PLAN_ALREADY_DECIDED` | 409 | Approving or rejecting a plan twice. |
+| `REPORT_NOT_READY` | 404 | Report requested before the run finished. |
+| `RUN_ALREADY_FINISHED` | 409 | Cancelling a terminal run. |
+| `VALIDATION_ERROR` | 422 | Malformed request body. |
+| `NOT_FOUND` | 404 | Unknown route. |
+
+> §6 names only the first three plus `NOT_FOUND`; it describes the rest by status alone.
+> The others were named here by Dev 2. Additive codes merge immediately under §11 —
+> tell the team if you add more.
+
+---
+
+## System — Dev 2
+
+### ✅ `GET /health`
+Liveness only, no dependency checks. Always `200 {"status": "ok"}`.
+
+### ✅ `GET /system/status`
+
+```json
+{
+  "mongodb": "ok" | "unavailable",
+  "search_indexes": { "keyword": "ok|unavailable|building", "vector": "..." },
+  "runner": { "mode": "trusted_docker|disabled", "available": false },
+  "gemini": { "model": "gemini-4-argon", "reachable": false },
+  "details": { "mongodb": "why it is unavailable" }
+}
+```
+
+`mongodb` is a real `ping`. `search_indexes` is a real `listSearchIndexes` on
+`code_chunks`. `gemini.reachable` is a real `models.get`, cached per process so polling
+does not burn quota. `details` is additive and safe to ignore.
+
+**With an empty `.env` every value is honestly `unavailable`. That is correct, not a bug.**
+
+---
+
+## Repositories & search — Dev 3
+
+All ✅ — implemented and exercised against the real cluster.
+
+| Endpoint | Response |
+|---|---|
+| `GET /demo-fixtures` | `[{demo_fixture_id, name, description}]` |
+| `POST /repositories/import` | `RepositoryRecord` — multipart `file` (ZIP) **or** `{demo_fixture_id, name?}` |
+| `GET /repositories` | `RepositoryRecord[]` — **newest first** |
+| `GET /repositories/{repo_id}` | `RepositoryRecord` |
+| `GET /repositories/{repo_id}/graph?level=module&run_id=` | `GraphPayload` |
+| `GET /repositories/{repo_id}/modules/{module_id}` | `ModuleDetail` |
+| `GET /repositories/{repo_id}/symbols/{symbol_id}` | `SymbolRecord` + `{source}` |
+| `GET /repositories/{repo_id}/search?q=&mode=&limit=` | `{mode_used, native_hybrid, hits}` |
+| `POST /repositories/{repo_id}/index` | `{chunks, described, embedded, warnings}` |
+
+Import sets `executable=True` **only** for the allowlisted fixture `legacy_orders`.
+ZIP uploads get `executable=False` and can never run.
+
+### Search
+
+`mode` is `keyword | vector | hybrid`, default `hybrid`; `limit` is 1–50, default 10.
+`q` is required and capped at 500 characters.
+
+- `native_hybrid` says whether `$rankFusion` actually ran, or a Python fallback did.
+  It is measured per request, never assumed.
+- Each `SearchHit` carries `keyword_rank` / `vector_rank` where known, so the UI can
+  show why something ranked where it did.
+- `qualified_name` and `kind` are **additive** fields on `SearchHit` (§11: optional,
+  default `None`, no consumer breaks). §4 gives a hit a path and a line range but no
+  name, which would make a result list read `pricing.py:48-106` with no way to say
+  which function that is without a second request per hit. Dev 3 fills them; ignore
+  them if you prefer.
+- Errors: **404** for an unknown repository, **422** for a bad query or mode, and
+  **503 `SEARCH_INDEX_NOT_READY`** (with `details.state`) while an index is building
+  or absent. None of these is ever an empty `hits` list — "nothing matched" and "the
+  index is not ready" must not look the same.
+
+`POST .../index` re-chunks, re-describes and re-embeds from the stored snapshot. Use
+it when `INDEX_ON_IMPORT` was off, when a Gemini key arrives late, or when the
+embedding model changes. See `docs/mongodb-atlas.md`.
+
+The status overlay on `/graph` comes from Dev 2's
+`orchestration.worker.get_unit_statuses(run_id)` — call it, don't recompute it.
+
+---
+
+## Migration targets — Dev 2
+
+### ✅ `GET /migration-targets` → `MigrationTarget[]`
+
+| `target_id` | supported | why not |
+|---|---|---|
+| `modern_python3` | ✅ | — |
+| `fastapi` | ❌ | stretch goal, not in the MVP |
+| `async_python` | ❌ | changing concurrency changes observable behaviour, so differential verification is meaningless |
+| `python_to_typescript` | ❌ | no shared runtime for the verifier to execute both sides in |
+| `python2_to_3` | ❌ | needs a Python 2 runtime in the sandbox image |
+
+Unsupported targets are returned so the UI can show them **disabled with a reason**,
+not hidden. Asking for one is 422 `UNSUPPORTED_TARGET`.
+
+---
+
+## Plans — Dev 2
+
+### ⏳ `POST /repositories/{repo_id}/plans` → `MigrationPlan` (`draft`)
+Body `{"target_id": "modern_python3"}`.
+
+Validates the target (422) → loads the repository and graph from Dev 3 → `build_units`
+→ asks Argon to order them → validates that order → persists.
+
+Returns 503 `INTEGRATION_UNAVAILABLE` until Dev 3's graph exists. **Target validation
+happens first**, so T-08 holds even with Atlas down.
+
+Argon may only *reorder*. An order that is not a valid topological order of the
+condensation is discarded for the deterministic one, with the reason in `rationale`.
+If Argon is unreachable the plan is still built, deterministically, and says so.
+
+### ✅ `GET /plans/{plan_id}` → `MigrationPlan`
+
+### ✅ `POST /plans/{plan_id}/approve` → `MigrationPlan`
+Body `{"approved": true}`. Sets `approved_at`. 409 `PLAN_ALREADY_DECIDED` on a second call.
+
+---
+
+## Runs — Dev 2
+
+### ✅ `POST /plans/{plan_id}/runs` → `RunSummary` (`queued`)
+409 `PLAN_NOT_APPROVED` unless the plan is approved. Starts a background asyncio task —
+**work is never tied to the HTTP request lifetime**.
+
+### ✅ `GET /runs/{run_id}` → `RunSummary`
+Poll this every 1.5 s while `state` is non-terminal.
+
+### ✅ `GET /runs/{run_id}/events?after_sequence=0&limit=200` → `RunEvent[]`
+Ascending, unique monotonic `sequence` starting at 1. Poll with the last sequence you
+saw; you cannot miss or double-count an event.
+
+### ✅ `POST /runs/{run_id}/cancel` → `RunSummary`
+Sets a flag the worker checks between steps. 409 `RUN_ALREADY_FINISHED` on a terminal run.
+
+### ⏳ `GET /runs/{run_id}/units/{unit_id}`
+`{unit, verifications, counterexamples}`. Held-out inputs are redacted unless
+`exposed_to_model`. `verifications` stays empty until Dev 4 writes `verification_results`.
+
+### ⏳ `GET /runs/{run_id}/diff?unit_id=` → `{base_revision, revision, files[]}`
+**T-16**: the diff shown must be the diff of the verified accepted revision. Needs Dev 4's `diff`.
+
+### ✅ `GET /runs/{run_id}/report` → `RunReport`
+404 `REPORT_NOT_READY` until the run finishes. Every number comes from
+`verification_results`, `counterexamples` and `run_events` — **never from model text**.
+`narrative` is the only model-written prose and is labelled as such.
+`coverage_caveats` always states that agreement on N cases is not a proof of equivalence.
+
+### ✅ `GET /runs/{run_id}/artefacts` → `[{artefact_id, kind, sha256, download_url}]`
+### ✅ `GET /artefacts/{artefact_id}/download` → file stream
+
+---
+
+## Run events — §7
+
+Written only through `events.append_event`. Payloads are redacted and capped at 2 KB
+(`GateResult.log_excerpt` is a different field with a 4 KB cap — don't conflate them).
+
+| Emitted by Dev 2 | Payload |
+|---|---|
+| `run_created` | `{plan_id, target_id}` |
+| `run_state_changed` / `unit_state_changed` | `{from, to}` |
+| `baseline_captured` | `BaselineSummary` subset |
+| `patch_proposed` | `{files, summary, bytes}` |
+| `patch_applied` / `patch_rejected` | `{workspace_revision}` / `{errors}` |
+| `verification_started` | `{workspace_revision, scope}` |
+| `gate_result` | `GateResult` |
+| `verification_passed` / `verification_failed` | `{verification_id, failed_case_ids, counterexample_ids}` |
+| `counterexample_recorded` | `{counterexample_id, case_id, visibility, ...}` |
+| `repair_started` | `{attempt, budget_remaining}` |
+| `snapshot_accepted` | `{revision}` |
+| `unit_blocked` | `{reason, verification_id}` |
+| `report_generated` | `{artefact_ids}` |
+| `error` | `{code, message}` |
+
+| Emitted by Dev 1, via `UnitController.emit` | Payload |
+|---|---|
+| `agent_turn` | `{interaction_id, thinking_level, text_excerpt}` |
+| `agent_tool_call` | `{tool, args_excerpt}` |
+| `agent_tool_result` | `{tool, ok, result_excerpt}` |
+
+`emit()` rejects anything else. The model cannot write itself a passing verification.
+
+---
+
+## Conventions
+
+- **Polling:** `GET /runs/{id}` and `/events?after_sequence=N` every 1.5 s while non-terminal.
+- **CORS:** only `FRONTEND_ORIGIN` (`http://localhost:5173` by default).
+- **Datetimes:** timezone-aware, UTC in the database. UK clocks go back at 02:00 on
+  Sun 25 Oct, mid-hackathon — never use naive timestamps.
+- **Money:** `Decimal`, encoded per §5 as `{"__decimal__": "12.35"}`. Never float.
+- **Field names:** snake_case everywhere, including in TypeScript, so the mirror in
+  `frontend/src/types/contracts.ts` is one-to-one with `backend/app/models/contracts.py`.
+
+
+### Declared runtime metadata
+
+`GET /api/v1/repositories/{repo_id}/runtime` verifies repository existence and reads
+literal package requirements from `setup.py` or `pyproject.toml` in the snapshot.
+Supports a project root or a single top-level archive directory. No source executes.
+Returns `{declared_python: string|null, evidence: string[], runtime_verified: false,
+note: string}`. Contradictory/missing declarations yield null. `2.7` means an explicit
+2.7 requirement excluding Python 3; it does not imply Python 2 execution occurred.

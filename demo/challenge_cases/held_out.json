@@ -1,0 +1,110 @@
+[
+  {
+    "case_id": "hcase_001",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 1, "sku": "SKU-A", "unit_price": "2.45"}], "member"],
+    "kwargs": {},
+    "visibility": "held_out",
+    "description": "10% of 2.45 is 0.245, so the line lands exactly on a half penny. Half-up gives 2.21 and a 2.65 total; banker's rounding gives 2.20 and 2.64.",
+    "provenance": "demo/challenge_cases/held_out.json"
+  },
+  {
+    "case_id": "hcase_002",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 1, "sku": "SKU-A", "unit_price": "1.25"}], "member"],
+    "kwargs": {},
+    "visibility": "held_out",
+    "description": "Catches both banker's rounding (1.34) and rounding only at the end (1.35) against the real 1.36.",
+    "provenance": "demo/challenge_cases/held_out.json"
+  },
+  {
+    "case_id": "hcase_003",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 1, "sku": "SKU-A", "unit_price": "1.25"}], "partner"],
+    "kwargs": {},
+    "visibility": "held_out",
+    "description": "Rounding once at the end overshoots by a penny (1.28 against 1.27).",
+    "provenance": "demo/challenge_cases/held_out.json"
+  },
+  {
+    "case_id": "hcase_004",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 2, "sku": "SKU-C", "unit_price": "2.99"}], "staff"],
+    "kwargs": {},
+    "visibility": "held_out",
+    "description": "Both banker's rounding and round-once land on 5.38 against the real 5.39.",
+    "provenance": "demo/challenge_cases/held_out.json"
+  },
+  {
+    "case_id": "hcase_005",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 1, "sku": "SKU-A", "unit_price": "2.45"}, {"quantity": 3, "sku": "SKU-B", "unit_price": "1.25"}], "member"],
+    "kwargs": {},
+    "visibility": "held_out",
+    "description": "Two-line basket that catches all three naive rewrites at once: summing before discounting, banker's rounding and rounding once at the end all give 6.70 against the real 6.71.",
+    "provenance": "demo/challenge_cases/held_out.json"
+  },
+  {
+    "case_id": "hcase_006",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 3, "sku": "SKU-C", "unit_price": "2.99"}, {"quantity": 1, "sku": "SKU-D", "unit_price": "9.99"}], "partner"],
+    "kwargs": {},
+    "visibility": "held_out",
+    "description": "Per-line rounding accumulates across a mixed basket: summing first or rounding once gives 19.34 against the real 19.33.",
+    "provenance": "demo/challenge_cases/held_out.json"
+  },
+  {
+    "case_id": "hcase_007",
+    "unit_id": "unit_pricing",
+    "function": "pricing.finalise_amount",
+    "args": [[{"quantity": 7, "sku": "SKU-E", "unit_price": "6.65"}, {"quantity": 2, "sku": "SKU-F", "unit_price": "0.55"}], "staff"],
+    "kwargs": {},
+    "visibility": "held_out",
+    "description": "Larger basket at the top discount band; banker's rounding drifts to 42.88 against the real 42.89.",
+    "provenance": "demo/challenge_cases/held_out.json"
+  },
+  {
+    "case_id": "hcase_008",
+    "unit_id": "unit_orders",
+    "function": "orders.place_order",
+    "args": ["C-1001", [{"quantity": 1, "sku": "SKU-A", "unit_price": "2.45"}, {"quantity": 3, "sku": "SKU-B", "unit_price": "1.25"}]],
+    "kwargs": {},
+    "visibility": "held_out",
+    "description": "The hcase_005 basket through the public order API, so the penny difference shows on a real order total.",
+    "provenance": "demo/challenge_cases/held_out.json"
+  },
+  {
+    "case_id": "hcase_009",
+    "unit_id": "unit_refunds",
+    "function": "refunds.partial_refund",
+    "args": [],
+    "kwargs": {},
+    "steps": [
+      {"function": "orders.place_order", "args": ["C-1001", [{"quantity": 3, "sku": "SKU-B", "unit_price": "1.25"}]], "kwargs": {}},
+      {"function": "refunds.partial_refund", "args": ["ORD-0001", [{"quantity": 1, "sku": "SKU-B"}]], "kwargs": {}}
+    ],
+    "visibility": "held_out",
+    "description": "Refund of one unit at a half-penny price. The refund reprices through pricing, so a rounding change in pricing also moves the refunded amount.",
+    "provenance": "demo/challenge_cases/held_out.json"
+  },
+  {
+    "case_id": "hcase_010",
+    "unit_id": "unit_refunds",
+    "function": "refunds.partial_refund",
+    "args": [],
+    "kwargs": {},
+    "steps": [
+      {"function": "orders.place_order", "args": ["C-1003", [{"quantity": 2, "sku": "SKU-A", "unit_price": "2.45"}]], "kwargs": {}},
+      {"function": "refunds.partial_refund", "args": ["ORD-0001", [{"quantity": 0, "sku": "SKU-A"}]], "kwargs": {}}
+    ],
+    "visibility": "held_out",
+    "description": "Zero-quantity refund. No visible case covers this, so it is a genuine coverage gap the plan should flag.",
+    "provenance": "demo/challenge_cases/held_out.json"
+  }
+]

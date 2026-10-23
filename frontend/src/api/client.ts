@@ -1,0 +1,125 @@
+/**
+ * Typed fetch wrapper - owner: Dev 5 (seeded by Dev 2 for the skeleton gate).
+ *
+ * Parses the SHARED_CONTRACTS §6 error envelope into a thrown `ApiError` so callers and
+ * TanStack Query see a real failure rather than a shape they have to sniff.
+ */
+
+import type {
+  ApiErrorBody,
+  DemoFixture,
+  GraphPayload,
+  ModuleDetail,
+  RepositoryRecord,
+  RuntimeInfo,
+  SystemStatus,
+} from '../types/contracts';
+
+export const API_BASE: string =
+  (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://localhost:8000/api/v1';
+
+export class ApiError extends Error {
+  readonly code: string;
+  readonly status: number;
+  readonly details: Record<string, unknown>;
+
+  constructor(code: string, message: string, status: number, details: Record<string, unknown>) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.status = status;
+    this.details = details;
+  }
+}
+
+function isErrorEnvelope(value: unknown): value is ApiErrorBody {
+  if (typeof value !== 'object' || value === null || !('error' in value)) return false;
+  const inner = (value as { error: unknown }).error;
+  return typeof inner === 'object' && inner !== null && 'code' in inner && 'message' in inner;
+}
+
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const url = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      headers: { Accept: 'application/json', ...(init?.headers ?? {}) },
+    });
+  } catch (cause) {
+    // Network-level failure: the backend is not running, or CORS blocked the request.
+    throw new ApiError('NETWORK_ERROR', `Could not reach ${url}`, 0, {
+      cause: String(cause),
+    });
+  }
+
+  const text = await response.text();
+  const body: unknown = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    if (isErrorEnvelope(body)) {
+      throw new ApiError(
+        body.error.code,
+        body.error.message,
+        response.status,
+        body.error.details ?? {},
+      );
+    }
+    throw new ApiError('HTTP_ERROR', `${response.status} ${response.statusText}`, response.status, {});
+  }
+
+  return body as T;
+}
+
+/** GET /api/v1/health - liveness only. */
+export function getHealth(): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>('/health');
+}
+
+/** GET /api/v1/system/status - SHARED_CONTRACTS §6. */
+export function getSystemStatus(): Promise<SystemStatus> {
+  return apiFetch<SystemStatus>('/system/status');
+}
+
+const repo = (repoId: string) => `/repositories/${encodeURIComponent(repoId)}`;
+
+/** GET /api/v1/demo-fixtures - SHARED_CONTRACTS §6. */
+export function listDemoFixtures(): Promise<DemoFixture[]> {
+  return apiFetch<DemoFixture[]>('/demo-fixtures');
+}
+
+/** POST /api/v1/repositories/import - a fixture as JSON, a ZIP as multipart. No name: the API uses the fixture or file name. */
+export function importRepository(source: File | { demo_fixture_id: string }, name?: string): Promise<RepositoryRecord> {
+  if (source instanceof File) {
+    const body = new FormData();
+    body.append('file', source);
+    if (name) body.append('name', name);
+    return apiFetch<RepositoryRecord>('/repositories/import', { method: 'POST', body });
+  }
+  return apiFetch<RepositoryRecord>('/repositories/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...source, name }),
+  });
+}
+
+/** GET /api/v1/repositories/{repo_id} - SHARED_CONTRACTS §6. */
+export function getRepository(repoId: string): Promise<RepositoryRecord> {
+  return apiFetch<RepositoryRecord>(repo(repoId));
+}
+
+/** GET /api/v1/repositories/{repo_id}/graph - with a run, node status is that run's unit status. */
+export function getGraph(repoId: string, runId?: string | null): Promise<GraphPayload> {
+  return apiFetch<GraphPayload>(`${repo(repoId)}/graph${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`);
+}
+
+/** GET /api/v1/repositories/{repo_id}/modules/{module_id} - SHARED_CONTRACTS §6. */
+export function getModule(repoId: string, moduleId: string): Promise<ModuleDetail> {
+  return apiFetch<ModuleDetail>(`${repo(repoId)}/modules/${encodeURIComponent(moduleId)}`);
+}
+
+/** GET /api/v1/repositories/{repo_id}/runtime - declared Python version (§11 addition). */
+export function getRuntime(repoId: string): Promise<RuntimeInfo> {
+  return apiFetch<RuntimeInfo>(`${repo(repoId)}/runtime`);
+}

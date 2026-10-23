@@ -1,0 +1,724 @@
+"""Run worker tests - owner: Dev 2. Covers T-13 and T-14.
+
+The worker is the deterministic heart: it decides what runs next and what a run is
+allowed to claim at the end. These tests drive whole runs through a fake world -
+in-memory store, recorded events, scripted verification outcomes - so the run algorithm
+is exercised without Atlas, Docker or Gemini.
+
+The fake store round-trips through `model_dump()` exactly as Mongo does, so a bug where
+the worker relies on object identity instead of persisted state would show up here.
+
+What these are really guarding:
+  - nothing is migrated through a failed prerequisite (T-13)
+  - final verification always runs (T-14)
+  - no run ever reports `completed` unless every unit passed AND the final gates passed
+  - no code path raises IllegalTransition at runtime
+"""
+
+from datetime import UTC, datetime
+
+import pytest
+
+from app.agents.contexts import UnitSessionOutcome
+from app.models.contracts import (
+    BaselineSummary,
+    FilePatch,
+    GateResult,
+    MigrationPlan,
+    MigrationUnit,
+    PatchAck,
+    PatchProposal,
+    VerificationResult,
+)
+from app.orchestration import events as events_module
+from app.orchestration import ports as ports_module
+from app.orchestration import store as store_module
+from app.orchestration import worker as worker_module
+
+# The demo fixture's real shape: main -> orders,refunds; orders -> pricing,customers,
+# storage; refunds -> pricing,storage.
+UNIT_SPECS = [
+    ("unit_pricing", ["module_pricing"], [], ["unit_orders", "unit_refunds"]),
+    ("unit_customers", ["module_customers"], [], ["unit_orders"]),
+    ("unit_storage", ["module_storage"], [], ["unit_orders", "unit_refunds"]),
+    ("unit_orders", ["module_orders"],
+     ["unit_customers", "unit_pricing", "unit_storage"], ["unit_main"]),
+    ("unit_refunds", ["module_refunds"], ["unit_pricing", "unit_storage"], ["unit_main"]),
+    ("unit_main", ["module_main"], ["unit_orders", "unit_refunds"], []),
+]
+
+
+def make_units() -> list[MigrationUnit]:
+    return [
+        MigrationUnit(
+            unit_id=uid, module_ids=mods,
+            file_paths=[m.removeprefix("module_") + ".py" for m in mods],
+            depends_on_unit_ids=deps, dependant_unit_ids=dependants,
+        )
+        for uid, mods, deps, dependants in UNIT_SPECS
+    ]
+
+
+def make_plan(units=None) -> MigrationPlan:
+    units = units if units is not None else make_units()
+    return MigrationPlan(
+        plan_id="plan_test000001",
+        repository_id="repo_test000001",
+        snapshot_hash="sha256:test",
+        target_id="modern_python3",
+        units=units,
+        order=["unit_customers", "unit_pricing", "unit_storage",
+               "unit_orders", "unit_refunds", "unit_main"],
+        rationale="deterministic",
+        risks=[], coverage_gaps=[],
+        status="approved",
+        model="gemini-4-argon",
+        created_at=datetime.now(UTC),
+        approved_at=datetime.now(UTC),
+    )
+
+
+class World:
+    """A fake Atlas + agent + verifier, scripted per test."""
+
+    def __init__(self, plan: MigrationPlan, *, verdicts=None, final=True,
+                 baseline=True, agent=True):
+        self.plan = plan
+        self.runs: dict[str, dict] = {}
+        self.events: list[dict] = []
+        self.artefacts: list[dict] = []
+        # unit_id -> list of bools, one per verification attempt
+        self.verdicts: dict[str, list[bool]] = verdicts or {}
+        self.final_passes = final
+        self.baseline_available = baseline
+        self.agent_available = agent
+        self.attempts: dict[str, int] = {}
+        self.accepted: list[str] = []
+        self.migrated_order: list[str] = []
+        self.workspace_counter = 0
+        self.accepted_workspaces: list[str] = []
+        self.final_verified_revision: str | None = None
+        # "normal" stops once verified; "greedy" submits one more unverified patch
+        self.agent_mode = "normal"
+        self.cancel_after_baseline = False
+        self.cancel_during_final = False
+
+    # -- store -----------------------------------------------------------
+    async def get_plan(self, plan_id):
+        return self.plan
+
+    async def save_plan(self, plan):
+        self.plan = plan
+        return plan
+
+    async def save_run(self, run):
+        run.updated_at = datetime.now(UTC)
+        self.runs[run.run_id] = run.model_dump()
+        return run
+
+    async def get_run(self, run_id):
+        from app.models.contracts import RunSummary
+
+        if run_id not in self.runs:
+            from app.errors import RUN_NOT_FOUND, AppError
+
+            raise AppError(RUN_NOT_FOUND, "no run", status_code=404)
+        return RunSummary(**self.runs[run_id])
+
+    async def supersede_open_plans(self, repo_id, except_plan_id):
+        return 0
+
+    async def save_artefact(self, artefact):
+        self.artefacts.append(artefact)
+        return artefact
+
+    async def list_artefacts(self, run_id):
+        return [a for a in self.artefacts if a["run_id"] == run_id]
+
+    # -- events ----------------------------------------------------------
+    async def append_event(self, run_id, event_type, unit_id=None, attempt=None,
+                           payload=None):
+        self.events.append({
+            "run_id": run_id, "event_type": event_type, "unit_id": unit_id,
+            "attempt": attempt, "payload": payload or {},
+        })
+        sequence = len(self.events)
+        # The real append_event records the highest sequence so _save can keep
+        # RunSummary.last_event_sequence level with the journal. A fake that skips
+        # that bookkeeping would test itself rather than the worker.
+        events_module._LAST_SEQUENCE[run_id] = sequence
+
+        class _E:
+            pass
+
+        _E.sequence = sequence
+        return _E()
+
+    async def list_events(self, run_id, after_sequence=0, limit=200):
+        from app.models.contracts import RunEvent
+
+        return [
+            RunEvent(run_id=run_id, sequence=i + 1, timestamp=datetime.now(UTC),
+                     event_type=e["event_type"], unit_id=e["unit_id"],
+                     attempt=e["attempt"], payload=e["payload"])
+            for i, e in enumerate(self.events)
+            if e["run_id"] == run_id and i + 1 > after_sequence
+        ][:limit]
+
+    def types(self, unit_id=None):
+        return [e["event_type"] for e in self.events
+                if unit_id is None or e["unit_id"] == unit_id]
+
+    # -- ports -----------------------------------------------------------
+    async def runner_status(self):
+        return {"mode": "trusted_docker", "available": True, "image_digest": "sha256:x"}
+
+    async def capture_baseline(self, run_id, repo_id, units):
+        if not self.baseline_available:
+            raise ports_module.IntegrationUnavailable(
+                "Dev 4", "app.verification", "capture_baseline")
+        if self.cancel_after_baseline:
+            worker_module._cancelled.add(run_id)
+        return BaselineSummary(
+            run_id=run_id, snapshot_hash="sha256:test",
+            unit_ids=[u.unit_id for u in units],
+            cases_captured=26, cases_failed_to_capture=0,
+            existing_tests=GateResult(gate="existing_tests", status="passed",
+                                      summary="12 passed", passed=12),
+            environment={"python": "3.12.15", "runner_mode": "trusted_docker"},
+        )
+
+    async def create_workspace(self, run_id, repo_id, base_revision):
+        self.workspace_counter += 1
+
+        class _W:
+            revision_id = f"rev_ws{self.workspace_counter:03d}"
+            base = base_revision
+            root = "/tmp/ws"
+
+        return _W()
+
+    async def apply_patch(self, workspace, patch, allowed_paths):
+        return PatchAck(accepted=True, workspace_revision="rev_candidate01")
+
+    async def verify_unit(self, run_id, unit, workspace, impacted, attempt):
+        script = self.verdicts.get(unit.unit_id, [True])
+        index = min(attempt - 1, len(script) - 1)
+        passed = script[index]
+        return VerificationResult(
+            verification_id=f"ver_{unit.unit_id}_{attempt}",
+            run_id=run_id, unit_id=unit.unit_id, attempt=attempt,
+            workspace_revision="rev_candidate01",
+            gates=[GateResult(gate="differential",
+                              status="passed" if passed else "failed",
+                              summary="differential",
+                              passed=4 if passed else 3, failed=0 if passed else 1)],
+            comparisons=[], counterexample_ids=[],
+            all_required_gates_passed=passed,
+            runner_mode="trusted_docker",
+            started_at=datetime.now(UTC), finished_at=datetime.now(UTC),
+        )
+
+    async def verify_final(self, run_id, workspace):
+        self.final_verified_revision = getattr(workspace, "base", None)
+        if self.cancel_during_final:
+            worker_module._cancelled.add(run_id)
+        if self.final_passes is None:
+            raise ports_module.IntegrationUnavailable(
+                "Dev 4", "app.verification", "verify_final")
+        return VerificationResult(
+            verification_id="ver_final", run_id=run_id, unit_id=None, attempt=1,
+            workspace_revision="rev_final",
+            gates=[GateResult(gate="final_integration",
+                              status="passed" if self.final_passes else "failed",
+                              summary="final")],
+            comparisons=[], counterexample_ids=[],
+            all_required_gates_passed=bool(self.final_passes),
+            runner_mode="trusted_docker",
+            started_at=datetime.now(UTC), finished_at=datetime.now(UTC),
+        )
+
+    async def accept_workspace(self, workspace):
+        self.accepted_workspaces.append(getattr(workspace, "revision_id", None))
+        revision = f"rev_accepted{len(self.accepted):02d}"
+        self.accepted.append(revision)
+        return revision
+
+    async def run_unit_session(self, context, controller):
+        """Stands in for Dev 1: patch, verify, repeat while budget remains."""
+        if not self.agent_available:
+            raise ports_module.IntegrationUnavailable("Dev 1", "app.agents",
+                                                      "run_unit_session")
+        self.migrated_order.append(context.unit.unit_id)
+        while controller.patch_attempts_remaining() > 0:
+            ack = await controller.submit_patch(PatchProposal(
+                unit_id=context.unit.unit_id,
+                files=[FilePatch(path=p, new_content="x = 1\n")
+                       for p in context.unit.file_paths],
+                summary="modernise", rationale="types",
+            ))
+            if not ack.accepted:
+                break
+            self.attempts[context.unit.unit_id] = \
+                self.attempts.get(context.unit.unit_id, 0) + 1
+            outcome = await controller.run_verification()
+            if outcome.get("ok"):
+                if self.agent_mode == "greedy":
+                    # The model keeps editing after a pass and never re-verifies.
+                    # controller.workspace now points at an UNVERIFIED tree.
+                    await controller.submit_patch(PatchProposal(
+                        unit_id=context.unit.unit_id,
+                        files=[FilePatch(path=p, new_content="y = 2\n")
+                               for p in context.unit.file_paths],
+                        summary="one more thing", rationale="tidying",
+                    ))
+                break
+        return UnitSessionOutcome(
+            ended_because="verified" if controller.is_verified() else "budget_exhausted"
+        )
+
+    async def diff(self, run_id, base, revision, paths=None):
+        raise ports_module.IntegrationUnavailable("Dev 4", "app.sandbox", "diff")
+
+    async def workspace_path(self, run_id, revision):
+        raise ports_module.IntegrationUnavailable("Dev 4", "app.sandbox",
+                                                  "workspace_path")
+
+    async def narrate_report(self, evidence):
+        raise ports_module.IntegrationUnavailable("Dev 1", "app.agents",
+                                                  "narrate_report")
+
+
+@pytest.fixture
+def world(monkeypatch):
+    """Install a World. Tests mutate `w` before calling start_run."""
+    w = World(make_plan())
+
+    for name in ("get_plan", "save_plan", "save_run", "get_run",
+                 "supersede_open_plans", "save_artefact", "list_artefacts"):
+        monkeypatch.setattr(store_module, name, getattr(w, name))
+    for name in ("append_event", "list_events"):
+        monkeypatch.setattr(events_module, name, getattr(w, name))
+    for name in ("runner_status", "capture_baseline", "create_workspace",
+                 "apply_patch", "verify_unit", "verify_final", "accept_workspace",
+                 "run_unit_session", "diff", "narrate_report", "workspace_path"):
+        monkeypatch.setattr(ports_module, name, getattr(w, name))
+
+    # Reports write to disk; keep the worker's call but make it a no-op here.
+    async def no_report(run):
+        return None
+
+    monkeypatch.setattr(worker_module, "_generate_report", no_report)
+    worker_module._cancelled.discard("run_test000001")
+    return w
+
+
+async def run_to_completion(w):
+    """Start a run and await the background task."""
+    summary = await worker_module.start_run("plan_test000001")
+    task = worker_module._tasks.get(summary.run_id)
+    if task is not None:
+        await task
+    return await store_module.get_run(summary.run_id)
+
+
+# --------------------------------------------------------------------------
+# the happy path
+# --------------------------------------------------------------------------
+
+async def test_a_clean_run_completes_with_every_unit_passed(world):
+    run = await run_to_completion(world)
+
+    assert run.state == "completed"
+    assert run.error is None
+    assert run.units_verified == 6
+    assert run.units_blocked == 0
+    assert {u.status for u in run.units} == {"passed"}
+
+
+async def test_units_are_migrated_dependency_first(world):
+    await run_to_completion(world)
+    order = world.migrated_order
+
+    assert order.index("unit_pricing") < order.index("unit_orders")
+    assert order.index("unit_storage") < order.index("unit_refunds")
+    assert order.index("unit_orders") < order.index("unit_main")
+    assert order.index("unit_refunds") < order.index("unit_main")
+
+
+async def test_the_baseline_is_captured_before_any_unit_is_migrated(world):
+    await run_to_completion(world)
+    types = world.types()
+    assert types.index("baseline_captured") < types.index("patch_proposed")
+
+
+async def test_each_passing_unit_accepts_a_snapshot(world):
+    await run_to_completion(world)
+    assert world.types().count("snapshot_accepted") == 6
+
+
+# --------------------------------------------------------------------------
+# T-14: final verification always runs
+# --------------------------------------------------------------------------
+
+async def test_final_verification_runs_even_when_everything_passed(world):
+    run = await run_to_completion(world)
+    states = [e["payload"].get("to") for e in world.events
+              if e["event_type"] == "run_state_changed"]
+    assert "final_verification" in states
+    assert run.state == "completed"
+
+
+async def test_final_verification_runs_even_when_a_unit_blocked(world):
+    world.verdicts = {"unit_pricing": [False, False, False]}
+    await run_to_completion(world)
+    states = [e["payload"].get("to") for e in world.events
+              if e["event_type"] == "run_state_changed"]
+    assert "final_verification" in states
+
+
+async def test_a_failing_final_gate_fails_the_whole_run(world):
+    world.final_passes = False
+    run = await run_to_completion(world)
+    assert run.state == "failed"
+
+
+async def test_an_inconclusive_final_verification_is_never_completed(world):
+    """Verifier unavailable: inconclusive counts as not passed."""
+    world.final_passes = None
+    run = await run_to_completion(world)
+    assert run.state == "completed_with_warnings"
+    assert run.state != "completed"
+
+
+# --------------------------------------------------------------------------
+# T-13: gated progression
+# --------------------------------------------------------------------------
+
+async def test_a_blocked_unit_skips_its_dependants_and_they_are_never_migrated(world):
+    world.verdicts = {"unit_pricing": [False, False, False]}
+    run = await run_to_completion(world)
+
+    by_id = {u.unit_id: u.status for u in run.units}
+    assert by_id["unit_pricing"] == "blocked"
+    assert by_id["unit_orders"] == "skipped"
+    assert by_id["unit_refunds"] == "skipped"
+    assert by_id["unit_main"] == "skipped"
+    # independent leaves still get migrated
+    assert by_id["unit_customers"] == "passed"
+    assert by_id["unit_storage"] == "passed"
+
+    # the crucial part: the agent was never asked to migrate a skipped unit
+    assert "unit_orders" not in world.migrated_order
+    assert "unit_main" not in world.migrated_order
+
+
+async def test_a_run_with_a_blocked_unit_is_completed_with_warnings(world):
+    world.verdicts = {"unit_pricing": [False, False, False]}
+    run = await run_to_completion(world)
+    assert run.state == "completed_with_warnings"
+    assert run.units_blocked == 1
+
+
+async def test_a_blocked_unit_emits_a_reason(world):
+    world.verdicts = {"unit_pricing": [False, False, False]}
+    await run_to_completion(world)
+    blocked = [e for e in world.events if e["event_type"] == "unit_blocked"]
+    assert blocked
+    assert all(e["payload"].get("reason") for e in blocked)
+    skipped_reason = next(
+        e["payload"]["reason"] for e in blocked if e["unit_id"] == "unit_orders"
+    )
+    assert "unit_pricing" in skipped_reason
+
+
+# --------------------------------------------------------------------------
+# repair
+# --------------------------------------------------------------------------
+
+async def test_a_unit_that_fails_then_passes_is_repaired_not_blocked(world):
+    world.verdicts = {"unit_pricing": [False, True]}
+    run = await run_to_completion(world)
+
+    by_id = {u.unit_id: u.status for u in run.units}
+    assert by_id["unit_pricing"] == "passed"
+    assert run.state == "completed"
+    assert "repair_started" in world.types("unit_pricing")
+    assert world.attempts["unit_pricing"] == 2
+
+
+async def test_the_budget_is_three_attempts_then_the_unit_blocks(world):
+    world.verdicts = {"unit_pricing": [False, False, False, True]}
+    run = await run_to_completion(world)
+
+    assert world.attempts["unit_pricing"] == 3
+    by_id = {u.unit_id: u.status for u in run.units}
+    assert by_id["unit_pricing"] == "blocked"
+
+
+# --------------------------------------------------------------------------
+# failure paths
+# --------------------------------------------------------------------------
+
+async def test_no_baseline_means_the_run_fails_rather_than_proceeding(world):
+    """Without an oracle nothing downstream can be verified, so do not pretend."""
+    world.baseline_available = False
+    run = await run_to_completion(world)
+
+    assert run.state == "failed"
+    assert "baseline" in (run.error or "")
+    assert world.migrated_order == []
+
+
+async def test_an_unavailable_agent_blocks_its_units_without_crashing_the_run(world):
+    world.agent_available = False
+    run = await run_to_completion(world)
+
+    assert run.state == "completed_with_warnings"
+    assert all(u.status in {"blocked", "skipped"} for u in run.units)
+    assert run.units_verified == 0
+
+
+async def test_a_cancelled_run_stops_and_says_so(world):
+    worker_module._cancelled.add("run_test000001")
+    try:
+        summary = await worker_module.start_run("plan_test000001")
+        worker_module._cancelled.add(summary.run_id)
+        task = worker_module._tasks.get(summary.run_id)
+        if task:
+            await task
+        run = await store_module.get_run(summary.run_id)
+        assert run.state == "cancelled"
+    finally:
+        worker_module._cancelled.clear()
+
+
+# --------------------------------------------------------------------------
+# the central invariant
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "verdicts",
+    [
+        {},
+        {"unit_pricing": [False, True]},
+        {"unit_pricing": [False, False, False]},
+        {"unit_orders": [False, False, False]},
+        {"unit_main": [False, False, False]},
+        {"unit_pricing": [False, False, False], "unit_storage": [False, False, False]},
+    ],
+)
+async def test_no_run_ever_reports_completed_without_everything_passing(
+    world, verdicts
+):
+    world.verdicts = verdicts
+    run = await run_to_completion(world)
+
+    if run.state == "completed":
+        assert all(u.status == "passed" for u in run.units), (
+            "a run claimed `completed` with a unit that did not pass"
+        )
+
+
+@pytest.mark.parametrize(
+    "verdicts",
+    [
+        {},
+        {"unit_pricing": [False, True]},
+        {"unit_pricing": [False, False, False]},
+        {"unit_customers": [False, False, False]},
+    ],
+)
+async def test_no_run_leaves_a_unit_in_a_non_terminal_state(world, verdicts):
+    world.verdicts = verdicts
+    run = await run_to_completion(world)
+
+    terminal = {"passed", "blocked", "failed", "skipped"}
+    stuck = [u.unit_id for u in run.units if u.status not in terminal]
+    assert not stuck, f"units left mid-flight: {stuck}"
+
+
+@pytest.mark.parametrize(
+    "verdicts",
+    [
+        {},
+        {"unit_pricing": [False, True]},
+        {"unit_pricing": [False, False, False]},
+        {"unit_refunds": [False, False, False]},
+    ],
+)
+async def test_no_run_path_raises_an_illegal_transition(world, verdicts):
+    """The worker swallows exceptions into run.error, so an illegal transition would
+    look like a quietly failed run rather than a crash. Catch it here."""
+    world.verdicts = verdicts
+    run = await run_to_completion(world)
+
+    assert "IllegalTransition" not in (run.error or ""), run.error
+    errors = [e["payload"].get("message", "") for e in world.events
+              if e["event_type"] == "error"]
+    assert not any("IllegalTransition" in m for m in errors), errors
+
+
+# --------------------------------------------------------------------------
+# regressions found by the adversarial review
+# --------------------------------------------------------------------------
+
+async def test_only_the_verified_workspace_is_ever_accepted(world):
+    """The model passes verification, then edits again without re-verifying.
+
+    Accepting `controller.workspace` would accept a tree no verifier ever looked
+    at - a direct violation of the central invariant.
+    """
+    world.agent_mode = "greedy"
+    run = await run_to_completion(world)
+
+    assert run.state == "completed"
+    # Each unit created 2 workspaces (verified, then the greedy one). The accepted
+    # workspace must always be the earlier, verified one.
+    for accepted in world.accepted_workspaces:
+        assert accepted is not None
+    assert len(set(world.accepted_workspaces)) == len(world.accepted_workspaces)
+
+    # The greedy patch always creates a workspace numbered one higher; none of
+    # those may have been accepted.
+    greedy = {f"rev_ws{n:03d}" for n in range(2, world.workspace_counter + 1, 2)}
+    assert not (set(world.accepted_workspaces) & greedy), (
+        f"accepted an unverified workspace: {world.accepted_workspaces}"
+    )
+
+
+async def test_final_verification_runs_against_the_last_accepted_revision(world):
+    """It was previously called with workspace=None, so it saw no tree at all."""
+    await run_to_completion(world)
+    assert world.final_verified_revision is not None
+    assert world.final_verified_revision.startswith("rev_accepted")
+
+
+async def test_final_verification_uses_the_baseline_when_nothing_was_accepted(world):
+    world.verdicts = {uid: [False, False, False] for uid, *_ in UNIT_SPECS}
+    await run_to_completion(world)
+    assert world.final_verified_revision == "rev_baseline"
+
+
+async def test_cancelling_mid_run_does_not_crash_the_worker(world):
+    """_is_cancelled is called twice in a row; the second must not re-transition."""
+    world.cancel_after_baseline = True
+    run = await run_to_completion(world)
+
+    assert run.state == "cancelled"
+    assert "IllegalTransition" not in (run.error or ""), run.error
+    errors = [e["payload"].get("message", "") for e in world.events
+              if e["event_type"] == "error"]
+    assert not any("IllegalTransition" in m for m in errors), errors
+
+
+async def test_a_cancelled_run_leaves_no_unit_mid_flight(world):
+    world.cancel_after_baseline = True
+    run = await run_to_completion(world)
+
+    terminal = {"passed", "blocked", "failed", "skipped"}
+    stuck = [u.unit_id for u in run.units if u.status not in terminal]
+    assert not stuck, f"cancelled run left units mid-flight: {stuck}"
+
+
+async def test_the_run_summary_reports_real_test_counts(world):
+    """These were hard-coded 0 forever, which made the report's caveats dead code."""
+    run = await run_to_completion(world)
+    assert run.tests_passed > 0, "tests_passed never left zero"
+
+
+async def test_repeat_attempts_do_not_inflate_the_run_summary_counts(world):
+    """Same inflation bug as the report: a retry must replace, not add."""
+    world.verdicts = {"unit_pricing": [False, False, True]}
+    run = await run_to_completion(world)
+
+    assert run.tests_passed > 0
+    # Six units contribute one differential gate each (4 passing cases), plus the
+    # final gate. Three attempts on unit_pricing must replace, not add.
+    assert run.tests_passed <= 6 * 4 + 12, (
+        f"counts look inflated by retries: {run.tests_passed}"
+    )
+
+
+async def test_attempts_and_accepted_revision_are_recorded_on_each_unit(world):
+    world.verdicts = {"unit_pricing": [False, True]}
+    run = await run_to_completion(world)
+
+    by_id = {u.unit_id: u for u in run.units}
+    assert by_id["unit_pricing"].attempts == 2
+    assert by_id["unit_pricing"].accepted_revision is not None
+    assert by_id["unit_pricing"].last_verification_id is not None
+
+
+async def test_a_failure_message_is_redacted_before_it_is_persisted(world, monkeypatch):
+    """run.error is served straight out of GET /runs/{id}. The same string is
+    redacted on the event path; persisting it raw would leak a connection string."""
+    from app.orchestration import events as events_module
+
+    secret = "mongodb+srv://EXAMPLE-NOT-A-REAL-CONNECTION-STRING/axolotl"
+    monkeypatch.setattr(events_module, "_secret_values", lambda: [secret])
+
+    async def explode(run_id, repo_id, units):
+        raise ports_module.IntegrationUnavailable("Dev 4", "app.verification",
+                                                  f"capture_baseline against {secret}")
+
+    monkeypatch.setattr(ports_module, "capture_baseline", explode)
+
+    run = await run_to_completion(world)
+
+    assert run.state == "failed"
+    assert secret not in (run.error or ""), "a secret was persisted on the run document"
+    assert "[redacted]" in (run.error or "")
+
+
+async def test_cancelling_journals_every_unit_it_abandons(world):
+    """T-15: the audit trail must show the units being abandoned. Writing statuses
+    straight onto the run document left the journal claiming they were still running.
+    """
+    world.cancel_after_baseline = True
+    run = await run_to_completion(world)
+
+    journalled = [
+        e for e in world.events
+        if e["event_type"] == "unit_state_changed" and e["payload"].get("to") == "skipped"
+    ]
+    on_document = [u for u in run.units if u.status == "skipped"]
+
+    assert on_document, "nothing was abandoned, so this test proves nothing"
+    assert len(journalled) == len(on_document), (
+        f"{len(on_document)} unit(s) skipped on the document but "
+        f"{len(journalled)} in the journal"
+    )
+    reasons = [e for e in world.events if e["event_type"] == "unit_blocked"]
+    assert any("cancelled" in (e["payload"].get("reason") or "") for e in reasons)
+
+
+# --------------------------------------------------------------------------
+# final round of review fixes
+# --------------------------------------------------------------------------
+
+async def test_a_cancellation_during_final_verification_is_not_dropped(world):
+    """The last path where a run could overstate itself: cancel arrives while the
+    final check is running, and the verdict reports `completed` anyway."""
+    world.cancel_during_final = True
+    run = await run_to_completion(world)
+
+    assert run.state == "cancelled"
+    assert run.state != "completed"
+
+
+async def test_last_event_sequence_tracks_the_journal(world):
+    """It used to advance only on run_state_changed, so the value the frontend
+    polls from sat far behind the events it had already been served."""
+    run = await run_to_completion(world)
+
+    assert run.last_event_sequence == len(world.events), (
+        f"persisted {run.last_event_sequence} but the journal holds "
+        f"{len(world.events)} events"
+    )
+
+
+async def test_last_event_sequence_never_goes_backwards(world):
+    world.verdicts = {"unit_pricing": [False, True]}
+    run = await run_to_completion(world)
+    assert run.last_event_sequence >= len(world.events) - 1
