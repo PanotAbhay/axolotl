@@ -89,25 +89,11 @@ export function listDemoFixtures(): Promise<DemoFixture[]> {
   return apiFetch<DemoFixture[]>('/demo-fixtures');
 }
 
-/** A picked folder: each file with its path inside the folder. */
-export interface FolderUpload {
-  files: { path: string; file: File }[];
-}
-
-/** POST /api/v1/repositories/import - a fixture as JSON, a ZIP or a folder as multipart. No name: the API uses the fixture or file name. */
-export function importRepository(source: File | FolderUpload | { demo_fixture_id: string }, name?: string): Promise<RepositoryRecord> {
+/** POST /api/v1/repositories/import - a fixture as JSON, a ZIP as multipart. No name: the API uses the fixture or file name. */
+export function importRepository(source: File | { demo_fixture_id: string }, name?: string): Promise<RepositoryRecord> {
   if (source instanceof File) {
     const body = new FormData();
     body.append('file', source);
-    if (name) body.append('name', name);
-    return apiFetch<RepositoryRecord>('/repositories/import', { method: 'POST', body });
-  }
-  if ('files' in source) {
-    const body = new FormData();
-    for (const { path, file } of source.files) {
-      body.append('files', file);
-      body.append('paths', path);
-    }
     if (name) body.append('name', name);
     return apiFetch<RepositoryRecord>('/repositories/import', { method: 'POST', body });
   }

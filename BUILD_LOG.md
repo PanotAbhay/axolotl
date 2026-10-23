@@ -1564,9 +1564,10 @@ build prints a chunk-size warning.
 
 ---
 
-## Dev 1: folder upload replaces the ZIP in the UI
+## Dev 1: the API accepts a folder upload
 
-The demo uploads the chess project as its folder, not as a ZIP.
+The demo will upload the chess project as its folder, not as a ZIP. This is the
+backend half; Dev 5 is changing the upload screen.
 
 - **API.** `POST /repositories/import` also accepts multipart `files` with one `paths`
   entry each, giving the file's path inside the folder. ZIP and fixture imports are
@@ -1579,9 +1580,11 @@ The demo uploads the chess project as its folder, not as a ZIP.
 - **Still static only.** A folder upload is `origin="folder_upload"`,
   `executable=False`. **SHARED_CONTRACTS §11, additive:** `folder_upload` is a new value
   of `RepositoryRecord.origin`, in §4, `contracts.py` and `contracts.ts`. Needs acks.
-- **UI.** 01 New migration's "Upload a ZIP" is now "Upload a folder". Hidden files
-  (`.env`, `.git`, `.venv`) and `__pycache__` are never sent. Overview labels the origin.
-  `demo/package_chess.py` is deleted; pick `demo/chess` directly.
+- **For Dev 5.** Send each file as `files` and its path inside the folder (drop the
+  picked folder's own name) as `paths`, in the same order; pass the folder name as
+  `name`. Add `'folder_upload'` to `origin` in `contracts.ts` and label it on Overview.
+  Skipping hidden files and `__pycache__` client-side keeps `.env` off the wire.
+  `demo/package_chess.py` and the ZIP flow stay until the screen changes.
 
 ### A bug found on the way: the project name on every upload was discarded
 
@@ -1591,5 +1594,4 @@ screen never arrived and the API fell back to the file name. Shown on main: a ZI
 with `name=my-project` was saved as `chess`. Each parameter now has its own default,
 and `test_a_zip_upload_keeps_its_project_name` pins it.
 
-560 offline backend tests (16 new), ruff clean; frontend lint, build and 5 tests pass.
-Not yet exercised in a real browser against a live backend.
+560 offline backend tests (16 new), ruff clean. No frontend changes.

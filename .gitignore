@@ -38,3 +38,4 @@ Thumbs.db
 !.vscode/extensions.json
 
 # Generated chess upload archive
+/demo/chess-input.zip

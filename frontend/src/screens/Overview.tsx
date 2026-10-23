@@ -15,12 +15,6 @@ const ANALYSIS: Record<RepositoryRecord['analysis_status'], [typeof CheckCircleI
   failed: [XCircleIcon, 'Failed', 'text-failed'],
 };
 
-const ORIGINS: Record<RepositoryRecord['origin'], string> = {
-  demo_fixture: 'Demo fixture, trusted',
-  zip_upload: 'ZIP upload, static analysis only',
-  folder_upload: 'Folder upload, static analysis only',
-};
-
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col">
@@ -73,7 +67,7 @@ export default function Overview() {
         <div className="flex min-w-0 grow flex-col gap-2">
           <h1 className="font-mono text-2xl leading-tight font-medium">{r.name}</h1>
           <div className="flex flex-wrap gap-x-8 gap-y-2">
-            <Field label="Origin">{ORIGINS[r.origin]}</Field>
+            <Field label="Origin">{r.origin === 'demo_fixture' ? 'Demo fixture, trusted' : 'ZIP upload, static analysis only'}</Field>
             <Field label="Snapshot">
               <span className="font-mono text-sm leading-6" title={r.snapshot_hash}>{r.snapshot_hash.slice(0, 19)}</span>
             </Field>

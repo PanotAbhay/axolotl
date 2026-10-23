@@ -106,9 +106,10 @@ presented as an executable Python 2 migration.
 
 ## UI upload flow
 
-On New migration, choose "Upload a folder" and pick `demo/chess`. The browser sends
-each file with its path inside the folder; no ZIP is involved. Hidden files and
-`__pycache__` are never sent, and the API drops anything else on its ignore list.
+Build a fresh ZIP with `python demo/package_chess.py` from the repo root. Upload
+`demo/chess-input.zip` in the UI; do not use the stale ZIP from the source folder.
+The generated archive is ignored by Git and contains source, setup.py, README and tests,
+with no caches or runtime binaries.
 
 The UI reads declared Python requirements from `GET /repositories/{id}/runtime`,
 then displays **Python 2.7 (declared) -> Python 3.14 (desired)**, the real module
