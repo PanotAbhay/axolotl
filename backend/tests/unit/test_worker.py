@@ -1022,6 +1022,35 @@ async def test_a_second_run_on_the_same_repository_is_refused(world):
         await task
 
 
+async def test_two_concurrent_starts_create_one_run(world, monkeypatch):
+    """#99: the check and the save were separated by awaits (the runner check is a
+    `docker version` call), so a second click arriving in between passed too."""
+    import asyncio
+
+    runner_status = world.runner_status
+
+    async def slow_runner_status(*args):
+        await asyncio.sleep(0.01)
+        return await runner_status(*args)
+
+    monkeypatch.setattr(ports_module, "runner_status", slow_runner_status)
+
+    results = await asyncio.gather(
+        worker_module.start_run("plan_test000001"),
+        worker_module.start_run("plan_test000001"),
+        return_exceptions=True,
+    )
+
+    started = [r for r in results if not isinstance(r, Exception)]
+    refused = [r for r in results if isinstance(r, AppError)]
+    assert len(started) == 1 and len(world.runs) == 1
+    assert [r.code for r in refused] == ["RUN_ALREADY_ACTIVE"]
+
+    task = worker_module._tasks.get(started[0].run_id)
+    if task is not None:
+        await task
+
+
 async def test_another_plan_on_the_same_repository_is_refused_too(world):
     """Scoped to the repository, not the plan: a second plan migrating the same
     snapshot is the same hazard."""

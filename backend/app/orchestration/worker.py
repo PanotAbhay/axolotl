@@ -47,6 +47,8 @@ _tasks: dict[str, asyncio.Task] = {}
 _cancelled: set[str] = set()
 # run_id -> {(unit_id, gate): (passed, failed, inconclusive)}; cleared when a run ends.
 _GATE_TOTALS: dict[str, dict[tuple[str | None, str], tuple[int, int, int]]] = {}
+# ponytail: one lock for every start in this process; runs are per-process anyway.
+_START_LOCK = asyncio.Lock()
 
 
 # --------------------------------------------------------------------------
@@ -71,46 +73,50 @@ async def start_run(plan_id: str) -> RunSummary:
     # sets of accepted revisions from one snapshot. Scoped to the repository rather
     # than the plan because a second plan on the same repository is the same hazard,
     # and `supersede_open_plans` already treats a repository as having one live plan.
-    active = [
-        r for r in await store.list_unfinished_runs()
-        if r.repository_id == plan.repository_id
-    ]
-    if active:
-        raise AppError(
-            RUN_ALREADY_ACTIVE,
-            f"Run {active[0].run_id} is still active for this repository; "
-            f"wait for it to finish or cancel it",
-            status_code=409,
-            details={"repository_id": plan.repository_id,
-                     "active_run_id": active[0].run_id,
-                     "state": active[0].state},
-        )
+    #
+    # Under a lock, up to the first save (#99): the check and the save are separated
+    # by awaits, and a second request arriving in between found no run and passed.
+    async with _START_LOCK:
+        active = [
+            r for r in await store.list_unfinished_runs()
+            if r.repository_id == plan.repository_id
+        ]
+        if active:
+            raise AppError(
+                RUN_ALREADY_ACTIVE,
+                f"Run {active[0].run_id} is still active for this repository; "
+                f"wait for it to finish or cancel it",
+                status_code=409,
+                details={"repository_id": plan.repository_id,
+                         "active_run_id": active[0].run_id,
+                         "state": active[0].state},
+            )
 
-    runner = await _runner_mode()
-    run = RunSummary(
-        run_id=new_run_id(),
-        plan_id=plan.plan_id,
-        repository_id=plan.repository_id,
-        state="queued",
-        current_unit=None,
-        units=[
-            UnitRunState(unit_id=u.unit_id, module_ids=u.module_ids, status="queued")
-            for u in plan.units
-        ],
-        units_total=len(plan.units),
-        units_verified=0,
-        units_blocked=0,
-        tests_passed=0,
-        tests_failed=0,
-        tests_inconclusive=0,
-        last_event_sequence=0,
-        model=settings.gemini_model,
-        runner_mode=runner,
-        max_patch_attempts=settings.max_patch_attempts,
-        created_at=store.utcnow(),
-        updated_at=store.utcnow(),
-    )
-    await _save(run)
+        runner = await _runner_mode()
+        run = RunSummary(
+            run_id=new_run_id(),
+            plan_id=plan.plan_id,
+            repository_id=plan.repository_id,
+            state="queued",
+            current_unit=None,
+            units=[
+                UnitRunState(unit_id=u.unit_id, module_ids=u.module_ids, status="queued")
+                for u in plan.units
+            ],
+            units_total=len(plan.units),
+            units_verified=0,
+            units_blocked=0,
+            tests_passed=0,
+            tests_failed=0,
+            tests_inconclusive=0,
+            last_event_sequence=0,
+            model=settings.gemini_model,
+            runner_mode=runner,
+            max_patch_attempts=settings.max_patch_attempts,
+            created_at=store.utcnow(),
+            updated_at=store.utcnow(),
+        )
+        await _save(run)
 
     await events.append_event(
         run.run_id, "run_created",
