@@ -42,7 +42,7 @@ Time left: feature freeze **Sat 22:00**, submission **Sun 10:45** (cutoff 12:00)
   pass, so the `legacy_orders` run stops at 2 of 6 units
   ([#2](https://github.com/Prittstick22/axolotl/issues/2)). Imports take minutes because they wait
   for search indexing ([#28](https://github.com/Prittstick22/axolotl/issues/28)).
-- **Left for the MVP:** 22 tickets. The chess pieces, a live run with a real repair, the
+- **Left for the MVP:** 24 tickets. The chess pieces, a live run with a real repair, the
   Verification/Diff and Report screens, a cold-start dry run, and the submission material.
 
 ## Finished and working
@@ -77,6 +77,8 @@ Docker wasn't running, so nothing here re-proves the live stack. That is what
 | [#2](https://github.com/Prittstick22/axolotl/issues/2) Units with no visible cases can never pass verification | Dev 4 | **Yes**: both demos |
 | [#29](https://github.com/Prittstick22/axolotl/issues/29) Every import gets the `legacy_orders` held-out cases | Dev 4 | **Yes**: chess would be checked against the wrong cases |
 | [#28](https://github.com/Prittstick22/axolotl/issues/28) Import waits minutes for search indexing | Dev 3, Dev 1 | Stalls the demo unless chess is imported beforehand |
+| [#44](https://github.com/Prittstick22/axolotl/issues/44) The diff has no baseline, so every file reads as new | Dev 4 | **Yes**: the diff in the demo and the report's changed files |
+| [#45](https://github.com/Prittstick22/axolotl/issues/45) The unit endpoint returns no verifications | Dev 2 | The Diff screen's per-case table |
 | [#3](https://github.com/Prittstick22/axolotl/issues/3) The plan shows the wrong risk for every unit | Dev 2 | Wrong numbers on the Plan screen |
 | [#16](https://github.com/Prittstick22/axolotl/issues/16) A run turns terminal before its last event | Dev 2 | No, the frontend works around it |
 | [#17](https://github.com/Prittstick22/axolotl/issues/17) Interrupted runs keep their running unit states | Dev 2 | Only if the backend restarts mid-run |
@@ -108,7 +110,9 @@ Chess needs every piece below before a live run is possible. Close them, then cl
 |---|---|---|
 | [#3](https://github.com/Prittstick22/axolotl/issues/3) The plan shows the wrong risk for every unit | Dev 2 | — |
 | [#4](https://github.com/Prittstick22/axolotl/issues/4) Run chess end to end on the live stack and capture a real repair; record a `legacy_orders` backup run | Dev 1 | #30, #2 |
-| [#5](https://github.com/Prittstick22/axolotl/issues/5) Build screen 07: Verification / Diff | Dev 5 | — |
+| [#44](https://github.com/Prittstick22/axolotl/issues/44) The diff has no baseline, so every file reads as new | Dev 4 | — |
+| [#45](https://github.com/Prittstick22/axolotl/issues/45) The unit endpoint returns no verifications | Dev 2 | — |
+| [#5](https://github.com/Prittstick22/axolotl/issues/5) Build screen 07: Verification / Diff | Dev 5 | #44, #45 |
 | [#6](https://github.com/Prittstick22/axolotl/issues/6) Build screen 08: Final report | Dev 5 | — |
 | [#7](https://github.com/Prittstick22/axolotl/issues/7) Cold-start end-to-end dry run from the README | Dev 2 | #4, #5, #6 |
 | [#10](https://github.com/Prittstick22/axolotl/issues/10) Confirm the `legacy_orders` fixture parameters (backup demo) | Dev 4 | — |
@@ -126,8 +130,9 @@ Chess needs every piece below before a live run is possible. Close them, then cl
 | [#31](https://github.com/Prittstick22/axolotl/issues/31) Prepare the presentation and the 2-minute Q&A | Dev 4 | #14 |
 | [#15](https://github.com/Prittstick22/axolotl/issues/15) Record and upload the three submission videos | Dev 4 | #4, #14 |
 
-**Dev 4 is the bottleneck.** Dev 4 owns 9 of the 22 MVP tickets: four on the chess critical path
-(#2, #22, #23, #29), plus the demo script, videos and presentation. Dev 5 has 3. Consider moving
+**Dev 4 is the bottleneck.** Dev 4 owns 10 of the 24 MVP tickets: four on the chess critical path
+(#2, #22, #23, #29), the diff baseline (#44), plus the demo script, videos and presentation. Dev 5
+has 3. Consider moving
 #9 or #10 to someone else, or pairing on #22 and #23.
 
 ## Features, after the MVP
@@ -139,6 +144,7 @@ Chess needs every piece below before a live run is possible. Close them, then cl
 | [#25](https://github.com/Prittstick22/axolotl/issues/25) Graph accuracy: heuristic edges, more dynamic imports, grouped stdlib nodes | Dev 3 |
 | [#26](https://github.com/Prittstick22/axolotl/issues/26) Make snapshots available on every machine | Dev 3 |
 | [#27](https://github.com/Prittstick22/axolotl/issues/27) Run API additions for the Run screen | Dev 2 |
+| [#46](https://github.com/Prittstick22/axolotl/issues/46) Runtime timings in the report (decide first) | Dev 4, Dev 2 |
 
 ### Requested by the project manager, 24 Oct
 
@@ -165,9 +171,9 @@ pulled forward if the MVP is on track.
 | Dev | MVP | Bugs | Features |
 |---|---|---|---|
 | Dev 1 | [#4](https://github.com/Prittstick22/axolotl/issues/4), [#13](https://github.com/Prittstick22/axolotl/issues/13), [#28](https://github.com/Prittstick22/axolotl/issues/28) (with Dev 3) | — | [#39](https://github.com/Prittstick22/axolotl/issues/39) |
-| Dev 2 | [#3](https://github.com/Prittstick22/axolotl/issues/3), [#7](https://github.com/Prittstick22/axolotl/issues/7), [#8](https://github.com/Prittstick22/axolotl/issues/8), [#21](https://github.com/Prittstick22/axolotl/issues/21), [#30](https://github.com/Prittstick22/axolotl/issues/30) (shared) | [#16](https://github.com/Prittstick22/axolotl/issues/16), [#17](https://github.com/Prittstick22/axolotl/issues/17), [#18](https://github.com/Prittstick22/axolotl/issues/18), [#32](https://github.com/Prittstick22/axolotl/issues/32) | [#27](https://github.com/Prittstick22/axolotl/issues/27), [#35](https://github.com/Prittstick22/axolotl/issues/35), [#40](https://github.com/Prittstick22/axolotl/issues/40) |
+| Dev 2 | [#3](https://github.com/Prittstick22/axolotl/issues/3), [#7](https://github.com/Prittstick22/axolotl/issues/7), [#8](https://github.com/Prittstick22/axolotl/issues/8), [#21](https://github.com/Prittstick22/axolotl/issues/21), [#45](https://github.com/Prittstick22/axolotl/issues/45), [#30](https://github.com/Prittstick22/axolotl/issues/30) (shared) | [#16](https://github.com/Prittstick22/axolotl/issues/16), [#17](https://github.com/Prittstick22/axolotl/issues/17), [#18](https://github.com/Prittstick22/axolotl/issues/18), [#32](https://github.com/Prittstick22/axolotl/issues/32) | [#27](https://github.com/Prittstick22/axolotl/issues/27), [#35](https://github.com/Prittstick22/axolotl/issues/35), [#40](https://github.com/Prittstick22/axolotl/issues/40), [#46](https://github.com/Prittstick22/axolotl/issues/46) |
 | Dev 3 | [#11](https://github.com/Prittstick22/axolotl/issues/11), [#12](https://github.com/Prittstick22/axolotl/issues/12), [#28](https://github.com/Prittstick22/axolotl/issues/28), [#30](https://github.com/Prittstick22/axolotl/issues/30) (shared) | — | [#24](https://github.com/Prittstick22/axolotl/issues/24), [#25](https://github.com/Prittstick22/axolotl/issues/25), [#26](https://github.com/Prittstick22/axolotl/issues/26), [#33](https://github.com/Prittstick22/axolotl/issues/33), [#34](https://github.com/Prittstick22/axolotl/issues/34), [#37](https://github.com/Prittstick22/axolotl/issues/37) |
-| Dev 4 | [#2](https://github.com/Prittstick22/axolotl/issues/2), [#9](https://github.com/Prittstick22/axolotl/issues/9), [#10](https://github.com/Prittstick22/axolotl/issues/10), [#14](https://github.com/Prittstick22/axolotl/issues/14), [#15](https://github.com/Prittstick22/axolotl/issues/15), [#22](https://github.com/Prittstick22/axolotl/issues/22), [#23](https://github.com/Prittstick22/axolotl/issues/23), [#29](https://github.com/Prittstick22/axolotl/issues/29), [#31](https://github.com/Prittstick22/axolotl/issues/31), [#30](https://github.com/Prittstick22/axolotl/issues/30) (shared) | — | — |
+| Dev 4 | [#2](https://github.com/Prittstick22/axolotl/issues/2), [#9](https://github.com/Prittstick22/axolotl/issues/9), [#10](https://github.com/Prittstick22/axolotl/issues/10), [#14](https://github.com/Prittstick22/axolotl/issues/14), [#15](https://github.com/Prittstick22/axolotl/issues/15), [#22](https://github.com/Prittstick22/axolotl/issues/22), [#23](https://github.com/Prittstick22/axolotl/issues/23), [#29](https://github.com/Prittstick22/axolotl/issues/29), [#31](https://github.com/Prittstick22/axolotl/issues/31), [#44](https://github.com/Prittstick22/axolotl/issues/44), [#30](https://github.com/Prittstick22/axolotl/issues/30) (shared) | — | [#46](https://github.com/Prittstick22/axolotl/issues/46) |
 | Dev 5 | [#5](https://github.com/Prittstick22/axolotl/issues/5), [#6](https://github.com/Prittstick22/axolotl/issues/6), [#19](https://github.com/Prittstick22/axolotl/issues/19) | — | [#20](https://github.com/Prittstick22/axolotl/issues/20), [#34](https://github.com/Prittstick22/axolotl/issues/34), [#35](https://github.com/Prittstick22/axolotl/issues/35), [#36](https://github.com/Prittstick22/axolotl/issues/36), [#37](https://github.com/Prittstick22/axolotl/issues/37), [#38](https://github.com/Prittstick22/axolotl/issues/38), [#40](https://github.com/Prittstick22/axolotl/issues/40) |
 | Anyone | — | — | [#41](https://github.com/Prittstick22/axolotl/issues/41) (spike), [#42](https://github.com/Prittstick22/axolotl/issues/42) (stretch), [#43](https://github.com/Prittstick22/axolotl/issues/43) (spike, stretch) |
 
@@ -250,7 +256,8 @@ What Axolotl does, built or planned. ✅ is on `main`; a ticket number means it 
 | Feature | State |
 |---|---|
 | Run report built from recorded evidence, with caveats; artefact downloads | API ✅; screen [#6](https://github.com/Prittstick22/axolotl/issues/6) |
-| Old vs new diff, gate results, counterexamples, attempt history | API ✅; screen [#5](https://github.com/Prittstick22/axolotl/issues/5) |
+| Old vs new diff, gate results, counterexamples, attempt history | API ✅ but no baseline [#44](https://github.com/Prittstick22/axolotl/issues/44) and no verifications [#45](https://github.com/Prittstick22/axolotl/issues/45); screen [#5](https://github.com/Prittstick22/axolotl/issues/5) |
+| Runtime before and after, per unit | [#46](https://github.com/Prittstick22/axolotl/issues/46) (decide first) |
 | Argon's narrative of the run, labelled as model-generated | API ✅ |
 | Migration summary: an overview of what changed | [#35](https://github.com/Prittstick22/axolotl/issues/35) |
 | Git-style diff of the whole project | API ✅; screen [#36](https://github.com/Prittstick22/axolotl/issues/36) |
