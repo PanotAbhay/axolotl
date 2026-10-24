@@ -15,11 +15,13 @@ import type {
   MigrationTarget,
   ModuleDetail,
   RepositoryRecord,
+  RunDiff,
   RunEvent,
   RunReport,
   RunSummary,
   RuntimeInfo,
   SystemStatus,
+  UnitDetail,
 } from '../types/contracts';
 
 export const API_BASE: string =
@@ -182,4 +184,14 @@ export function getReport(runId: string): Promise<RunReport> {
 
 export function listArtefacts(runId: string): Promise<Artefact[]> {
   return apiFetch<Artefact[]>(`${run(runId)}/artefacts`);
+}
+
+/** GET /api/v1/runs/{run_id}/units/{unit_id} - sealed held-out cases come back redacted. */
+export function getRunUnit(runId: string, unitId: string): Promise<UnitDetail> {
+  return apiFetch<UnitDetail>(`${run(runId)}/units/${encodeURIComponent(unitId)}`);
+}
+
+/** GET /api/v1/runs/{run_id}/diff?unit_id= - baseline against an accepted revision, the unit's files only. */
+export function getRunDiff(runId: string, unitId: string): Promise<RunDiff> {
+  return apiFetch<RunDiff>(`${run(runId)}/diff?unit_id=${encodeURIComponent(unitId)}`);
 }

@@ -30,6 +30,7 @@ const UiPreview = import.meta.env.DEV ? lazy(() => import('@/dev/UiPreview')) : 
 // React Flow and dagre load with the graph, not on every screen.
 const GraphScreen = lazy(() => import('@/screens/GraphScreen'));
 const RunScreen = lazy(() => import('@/screens/RunScreen'));
+const VerificationScreen = lazy(() => import('@/screens/VerificationScreen'));
 
 function Shell() {
   const repoId = useMatch('/repos/:repoId/*')?.params.repoId;
@@ -88,7 +89,8 @@ function RepoLayout() {
               <NavLink
                 key={label}
                 to={{ pathname: `/repos/${encodeURIComponent(repoId)}${path}`, search }}
-                end
+                // Only Overview needs `end`; Run stays current on a unit's page at /run/:unitId.
+                end={!path}
                 className={({ isActive }) =>
                   cn(TAB, isActive ? 'border-foreground text-foreground' : 'text-muted-foreground hover:text-foreground')
                 }
@@ -136,6 +138,7 @@ export default function App() {
           <Route path="graph" element={<Suspense><GraphScreen /></Suspense>} />
           <Route path="plan" element={<PlanScreen />} />
           <Route path="run" element={<Suspense><RunScreen /></Suspense>} />
+          <Route path="run/:unitId" element={<Suspense><VerificationScreen /></Suspense>} />
           <Route path="report" element={<ReportScreen />} />
           <Route path="search" element={<Pending screen="Search" />} />
         </Route>

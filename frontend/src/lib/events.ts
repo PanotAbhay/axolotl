@@ -1,4 +1,4 @@
-import type { GateStatus, RunEvent } from '@/types/contracts';
+import type { GateResult, GateStatus, RunEvent } from '@/types/contracts';
 
 export type GateChip = { gate: string; label: string; status: GateStatus; value: string; summary: string };
 export type GateGroup = { title: string; gates: GateChip[] };
@@ -42,7 +42,7 @@ const GATE_LABEL: Record<string, string> = {
   final_integration: 'Final integration',
 };
 
-function gateChip(p: Payload): GateChip {
+export function gateChip(p: Payload | GateResult): GateChip {
   const status = str(p.status) as GateStatus;
   const summary = str(p.summary);
   const tests = /^(\d+) passed/.exec(summary)?.[1];

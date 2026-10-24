@@ -149,11 +149,13 @@ function Zoom() {
   );
 }
 
-function Canvas({ graph, selected, filter, onSelect, attempts }: {
+function Canvas({ graph, selected, filter, onSelect, onOpen, attempts }: {
   graph: GraphPayload;
   selected: string | null;
   filter: string;
   onSelect: (id: string | null) => void;
+  /** A click or Enter on a module, even one already selected (selection alone fires only on a change). */
+  onOpen?: (id: string) => void;
   attempts?: Map<string, number>;
 }) {
   const edges = useMemo(() => dependencyEdges(graph.edges), [graph]);
@@ -208,6 +210,14 @@ function Canvas({ graph, selected, filter, onSelect, attempts }: {
       edges={flowEdges}
       nodeTypes={NODE_TYPES}
       onNodesChange={onNodesChange}
+      onNodeClick={onOpen && ((_, n: FlowNode) => onOpen(n.id))}
+      onKeyDown={
+        onOpen &&
+        ((e) => {
+          const id = e.key === 'Enter' && (e.target as HTMLElement).closest('.react-flow__node')?.getAttribute('data-id');
+          if (id) onOpen(id);
+        })
+      }
       nodesDraggable={false}
       nodesConnectable={false}
       edgesFocusable={false}
@@ -232,6 +242,7 @@ export function GraphArea({ graph, ...canvas }: {
   selected: string | null;
   filter: string;
   onSelect: (id: string | null) => void;
+  onOpen?: (id: string) => void;
   attempts?: Map<string, number>;
 }) {
   return (

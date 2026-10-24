@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cn } from 'cn';
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useOutletContext, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router-dom';
 
 import { ApiError, cancelRun, getGraph, getPlan, listRunEvents } from '@/api/client';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
@@ -155,6 +155,8 @@ function Dashboard({ repoId, run }: { repoId: string; run: RunSummary }) {
   const [picked, setPicked] = useState<string | null>();
   const [confirming, setConfirming] = useState(false);
   const cancelButton = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
+  const { search } = useLocation();
   const log = events.data ?? [];
   const last = log.at(-1);
   const { rows, gates, attempts: patched } = eventRows(log, unit);
@@ -217,7 +219,18 @@ function Dashboard({ repoId, run }: { repoId: string; run: RunSummary }) {
       )}
 
       <div className="flex min-h-[480px] flex-1">
-        <GraphArea graph={graph} selected={picked === undefined ? (current?.module_ids[0] ?? null) : picked} filter="" onSelect={setPicked} attempts={attempts} />
+        <GraphArea
+          graph={graph}
+          selected={picked === undefined ? (current?.module_ids[0] ?? null) : picked}
+          filter=""
+          onSelect={setPicked}
+          onOpen={(id) => {
+            // A module opens its unit's diff and gates (screen 07); test modules belong to no unit.
+            const unitId = graph.data?.nodes.find((n) => n.id === id)?.unit_id;
+            if (unitId) void navigate({ pathname: `/repos/${encodeURIComponent(repoId)}/run/${encodeURIComponent(unitId)}`, search });
+          }}
+          attempts={attempts}
+        />
         <aside aria-label="Run events" className="relative w-[400px] flex-none border-l bg-card xl:w-[440px] min-[1300px]:w-[480px]">
           <div className="absolute inset-0 flex flex-col">
             <section className="flex flex-none flex-col gap-2 border-b px-4 py-3">

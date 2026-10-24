@@ -43,7 +43,7 @@ export const RUN_STATE: Record<RunState, StatusStyle> = {
   cancelled: { icon: MinusCircleIcon, label: 'Cancelled', tone: 'neutral' },
 };
 
-/** Gate chips. The chip's value says the result in words; skipped gets a dashed outline. Template: kit.css `.gate`. */
+/** Gate chips and the gate table. The chip's value says the result in words; skipped gets a dashed outline. Template: kit.css `.gate`. */
 export const GATE_STATUS: Record<GateStatus, { icon: Icon; tone: Tone }> = {
   passed: { icon: CheckCircleIcon, tone: 'passed' },
   failed: { icon: XCircleIcon, tone: 'failed' },

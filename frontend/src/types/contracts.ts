@@ -274,6 +274,8 @@ export interface CaseComparison {
   verdict: 'match' | 'mismatch' | 'inconclusive';
   old: CaseOutcome;
   new: CaseOutcome;
+  /** set by the unit endpoint on a sealed held-out case: the outcomes' values are a placeholder */
+  redacted?: boolean;
 }
 
 export interface GateResult {
@@ -318,6 +320,8 @@ export interface Counterexample {
   new: CaseOutcome;
   status: 'open' | 'resolved' | 'unresolved';
   resolved_by_verification_id: string | null;
+  /** set by the unit endpoint on a sealed held-out case: function, args, kwargs, old and new are a placeholder string */
+  redacted?: boolean;
 }
 
 export interface BaselineSummary {
@@ -447,6 +451,28 @@ export interface Artefact {
   sha256: string;
   /** Rooted at the API's origin: /api/v1/artefacts/{id}/download */
   download_url: string;
+}
+
+// ---------- GET /runs/{run_id}/units/{unit_id} ----------
+export interface UnitDetail {
+  unit: UnitRunState;
+  verifications: VerificationResult[];
+  counterexamples: Counterexample[];
+}
+
+// ---------- GET /runs/{run_id}/diff ----------
+export interface FileDiff {
+  path: string;
+  old_content: string;
+  new_content: string;
+  unified_diff: string;
+}
+
+export interface RunDiff {
+  base_revision: string;
+  /** null until a revision is accepted */
+  revision: string | null;
+  files: FileDiff[];
 }
 
 // ---------- GET /system/status (SHARED_CONTRACTS §6) ----------

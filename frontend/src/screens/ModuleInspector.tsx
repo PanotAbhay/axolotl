@@ -16,7 +16,7 @@ const KIND: Record<NodeKind, string> = {
   external_package: 'External package',
 };
 
-function Sec({ label, className, children }: { label?: ReactNode; className?: string; children: ReactNode }) {
+export function Sec({ label, className, children }: { label?: ReactNode; className?: string; children: ReactNode }) {
   return (
     <div className={cn('flex flex-none flex-col gap-2 border-b px-4 py-3 last:border-b-0', className)}>
       {label && <span className="text-sm font-medium text-muted-foreground">{label}</span>}
