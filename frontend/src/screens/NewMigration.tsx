@@ -1,51 +1,13 @@
-import { InfoIcon, XCircleIcon } from '@phosphor-icons/react';
+import { InfoIcon } from '@phosphor-icons/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { cn } from 'cn';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { importRepository, listDemoFixtures } from '@/api/client';
+import { Choice } from '@/components/Choice';
 import { Button } from '@/components/ui/button';
 
 const ZIP = 'zip';
-
-/** One radio row. The checked row gets the ink outline; an error on it turns the outline red. */
-function Choice({ value, checked, onPick, title, error, children }: {
-  value: string;
-  checked: boolean;
-  onPick: (value: string) => void;
-  title: ReactNode;
-  error?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 rounded-md border border-input bg-card px-4 py-3 has-checked:outline-2 has-checked:-outline-offset-2',
-        error ? 'has-checked:outline-failed' : 'has-checked:outline-foreground',
-        'has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-background',
-      )}
-    >
-      <label className="flex cursor-pointer items-start gap-3">
-        <input type="radio" name="source" value={value} checked={checked} onChange={() => onPick(value)} className="peer sr-only" />
-        <span
-          aria-hidden
-          className="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full border border-input bg-card peer-checked:border-2 peer-checked:border-foreground peer-checked:after:size-2.5 peer-checked:after:rounded-full peer-checked:after:bg-foreground peer-checked:after:content-['']"
-        />
-        <span className="flex min-w-0 flex-col">
-          <span className="font-medium">{title}</span>
-          {error ? (
-            <span role="alert" className="flex items-center gap-1 font-medium text-failed">
-              <XCircleIcon size={16} aria-hidden className="flex-none" />
-              {error}
-            </span>
-          ) : null}
-          <span className="text-muted-foreground">{children}</span>
-        </span>
-      </label>
-    </div>
-  );
-}
 
 /** 01 New migration: import the demo fixture or a ZIP. Errors are the API's own, on the choice they're about. */
 export default function NewMigration() {
@@ -96,6 +58,7 @@ export default function NewMigration() {
           {fixtures.data?.map((f) => (
             <Choice
               key={f.demo_fixture_id}
+              name="source"
               value={f.demo_fixture_id}
               checked={source === f.demo_fixture_id}
               onPick={pick}
@@ -105,7 +68,7 @@ export default function NewMigration() {
               {f.description} Trusted, so it can run in the sandbox.
             </Choice>
           ))}
-          <Choice value={ZIP} checked={source === ZIP} onPick={pick} error={errorOn(ZIP)} title="Upload a ZIP">
+          <Choice name="source" value={ZIP} checked={source === ZIP} onPick={pick} error={errorOn(ZIP)} title="Upload a ZIP">
             Up to 10 MB and 500 files. Static analysis only, so it can’t be migrated.
           </Choice>
           {source === ZIP && (

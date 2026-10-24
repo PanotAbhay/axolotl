@@ -6,7 +6,7 @@ import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { getModule } from '@/api/client';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
-import type { GraphPayload, NodeKind } from '@/types/contracts';
+import type { GraphPayload, MigrationUnit, NodeKind } from '@/types/contracts';
 
 const SourceView = lazy(() => import('@/components/SourceView'));
 
@@ -28,11 +28,13 @@ function Sec({ label, className, children }: { label?: ReactNode; className?: st
 const none = <span className="text-sm text-muted-foreground">None</span>;
 
 /** 04 Module inspector, the graph's side panel. Template: kit.js `inspector` (03) and s04 (expanded, with source). */
-export function ModuleInspector({ repoId, moduleId, graph, runId, expanded, onExpand, onClose }: {
+export function ModuleInspector({ repoId, moduleId, graph, runId, unit, expanded, onExpand, onClose }: {
   repoId: string;
   moduleId: string;
   graph: GraphPayload;
   runId: string | null;
+  /** The module's unit in the plan from ?plan=; risk and visible cases exist only once there is a plan. */
+  unit?: MigrationUnit;
   expanded: boolean;
   onExpand: (expanded: boolean) => void;
   onClose: () => void;
@@ -73,6 +75,23 @@ export function ModuleInspector({ repoId, moduleId, graph, runId, expanded, onEx
           </div>
         )}
       </Sec>
+
+      {unit && (
+        <Sec label="Risk">
+          <span className="font-medium capitalize">{unit.risk}</span>
+          {unit.risk_factors.length > 0 && (
+            <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
+              {unit.risk_factors.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          )}
+          <span className="text-sm">
+            <span className="text-muted-foreground">Visible cases </span>
+            {unit.visible_case_count || 'None'}
+          </span>
+        </Sec>
+      )}
 
       {detail.isError ? (
         <Sec>

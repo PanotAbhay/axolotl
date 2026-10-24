@@ -9,57 +9,42 @@
  * /repos/:repoId/<tab>, with ?plan= and ?run= carried from tab to tab.
  */
 
-import { WifiSlashIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from 'cn';
 import { lazy, Suspense, useState } from 'react';
 import { Link, NavLink, Outlet, Route, Routes, useMatch, useParams, useSearchParams } from 'react-router-dom';
 
-import { API_BASE, getSystemStatus } from '@/api/client';
+import { getSystemStatus } from '@/api/client';
 import { AppBar } from '@/components/AppBar';
-import { Button } from '@/components/ui/button';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { isLive, useRun } from '@/lib/run';
 import NewMigration from '@/screens/NewMigration';
 import Overview from '@/screens/Overview';
+import PlanScreen from '@/screens/PlanScreen';
 
 const STATUS_POLL_MS = 5000;
 // import.meta.env.DEV is false in `npm run build`, so the preview is dropped from production.
 const UiPreview = import.meta.env.DEV ? lazy(() => import('@/dev/UiPreview')) : null;
 // React Flow and dagre load with the graph, not on every screen.
 const GraphScreen = lazy(() => import('@/screens/GraphScreen'));
-
-function ConnectionBanner({ lastOk, retrying, onRetry }: { lastOk?: number; retrying: boolean; onRetry: () => void }) {
-  return (
-    <div role="status" className="flex min-h-12 flex-none flex-wrap items-center gap-x-3 gap-y-1 border-b border-border-strong bg-muted px-4 py-2">
-      <WifiSlashIcon size={20} aria-hidden />
-      {lastOk ? (
-        <>
-          <span className="font-medium">Connection lost — last known status at {new Date(lastOk).toLocaleTimeString('en-GB')}</span>
-          <span className="text-sm text-muted-foreground">Retrying every 5 s. The status chips are from that time.</span>
-        </>
-      ) : (
-        <>
-          <span className="font-medium">Can’t reach the API at {API_BASE}</span>
-          <span className="text-sm text-muted-foreground">
-            Start it with <code className="font-mono">cd backend && uv run uvicorn app.main:app --port 8000</code>
-          </span>
-        </>
-      )}
-      <Button variant="outline" className="ml-auto" onClick={onRetry} disabled={retrying}>
-        {retrying ? 'Retrying…' : 'Retry now'}
-      </Button>
-    </div>
-  );
-}
+const RunScreen = lazy(() => import('@/screens/RunScreen'));
 
 function Shell() {
   const repoId = useMatch('/repos/:repoId/*')?.params.repoId;
+  // A live run's dashboard shows its own banner, timed by its 1.5 s poll, so there is only ever one.
+  // A finished run isn't polled, so this one covers it.
+  const onRun = useMatch('/repos/:repoId/run');
+  const [params] = useSearchParams();
+  const run = useRun(params.get('run'));
+  const runBanner = Boolean(onRun && params.get('run') && isLive(run.data));
   const status = useQuery({ queryKey: ['system-status'], queryFn: getSystemStatus, refetchInterval: STATUS_POLL_MS });
   return (
     <div className="flex min-h-svh flex-col">
       <AppBar repoId={repoId} status={status.data} />
-      {status.isError && (
+      {status.isError && !runBanner && (
         <ConnectionBanner
+          note="Retrying every 5 s. The status chips are from that time."
           lastOk={status.data ? status.dataUpdatedAt : undefined}
           retrying={status.isFetching}
           onRetry={() => void status.refetch()}
@@ -148,8 +133,8 @@ export default function App() {
         <Route path="repos/:repoId" element={<RepoLayout />}>
           <Route index element={<Overview />} />
           <Route path="graph" element={<Suspense><GraphScreen /></Suspense>} />
-          <Route path="plan" element={<Pending screen="Target and plan" />} />
-          <Route path="run" element={<Pending screen="Run" />} />
+          <Route path="plan" element={<PlanScreen />} />
+          <Route path="run" element={<Suspense><RunScreen /></Suspense>} />
           <Route path="report" element={<Pending screen="Final report" />} />
           <Route path="search" element={<Pending screen="Search" />} />
         </Route>
