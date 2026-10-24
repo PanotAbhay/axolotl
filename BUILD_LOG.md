@@ -1635,3 +1635,27 @@ All open work is now GitHub issues #2–#43, labelled `MVP`, `feature`, `bug`, `
 tickets by developer and the product feature list. Two bugs found during the review: every
 import gets the `legacy_orders` held-out cases (#29), and an import waits for search indexing
 (#28, from Dev 5).
+
+## Dev 5 for Dev 4: units with no cases can pass, and the diff has a baseline
+
+Items 4 and 11 in [docs/backend-issues.md](docs/backend-issues.md) (#2 and #44), on branch
+`dev4-fixes-items-4-11` for Dev 4 to review.
+
+- **Item 4, units with no cases.** `_comparison_gate` marked the differential gate as required
+  even with no cases, so its `skipped` status failed every attempt: `storage.py` passed every
+  other gate in `run_bb0da2e79534` and was still blocked, which stopped the run at 2 of 6 units.
+  The gate is now required only when it has comparisons, and its summary says "no behaviour
+  cases for this unit". Such a unit is checked by the compile, existing-test and sandbox-policy
+  gates, as `plans.py` already tells the user. A mismatching case still fails the unit.
+- **Item 11, the diff baseline.** `diff()` read `rev_baseline` from
+  `WORKSPACE_ROOT/runs/{run_id}/rev_baseline/`, which is never created, so every file read as
+  added. It now reads the repository snapshot, the tree the first workspace is copied from. The
+  fix is in `diff()`, so the diff endpoint, the report's `changed_files` and the patch artefact
+  all get it. Checked offline on `run_bb0da2e79534`'s trees: `pricing.py` diffs as
+  `@@ -8,13 +8,17 @@` instead of `@@ -0,0 +1,113 @@`, and the final tree changes 2 files, not 9.
+- **The recorded run's report is unchanged.** Its `changed_files` and `migration.patch` were
+  written at report time from the old diff, so they still list 9 files. A new run gets the
+  right ones. The diff endpoint is computed per request, so it is right for the old run too.
+
+565 offline backend tests (3 new), 9 container tests, ruff clean. No frontend changes: the Run
+screen already shows a non-required skipped gate as "Differential skipped".

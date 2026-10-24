@@ -418,11 +418,13 @@ def _comparison_gate(
     return GateResult(
         gate=name,  # type: ignore[arg-type]
         status=status,  # type: ignore[arg-type]
-        required=name != "impacted_tests" or bool(comparisons),
+        # A gate with nothing to compare can't fail the unit: a unit with no cases
+        # is checked by the compile and existing-test gates alone (plans.py says so).
+        required=bool(comparisons),
         summary=(
             f"{counts['match']} case(s) agree with the baseline, "
             f"{counts['mismatch']} differ, {counts['inconclusive']} inconclusive"
-        ),
+        ) if comparisons else "no behaviour cases for this unit",
         passed=counts["match"],
         failed=counts["mismatch"],
         inconclusive=counts["inconclusive"],

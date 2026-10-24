@@ -11,14 +11,14 @@ frontend works around an issue, the item says so.
 | 1 | The runtime endpoint returns 500 on other machines | Dev 1 | Fixed in `edd19ea` |
 | 2 | Chess can't be migrated from 2.7 to 3.14 yet | Dev 2, Dev 3, Dev 4 | The chess demo |
 | 3 | The explorer is now part of screens 01–04 | Dev 1 | No |
-| 4 | Units with no visible cases can never pass | Dev 4 | Yes: `legacy_orders` ends at 2 of 6 units |
+| 4 | Units with no visible cases can never pass | Dev 4 | Fixed on branch `dev4-fixes-items-4-11` |
 | 5 | Risk ignores the visible case counts | Dev 2 | No, but the plan shows the wrong risk |
 | 6 | A run turns terminal before its last event | Dev 2 | No, the frontend works around it |
 | 7 | Interrupted runs keep their running unit states | Dev 2 | No |
 | 8 | Questions | Dev 2 | No |
 | 9 | Importing chess takes minutes because of search indexing | Dev 1, Dev 3 | Only if chess is uploaded live |
 | 10 | A unit's `attempts` reads 0 until the unit ends | Dev 2 | No, the frontend works around it |
-| 11 | The diff has no baseline, so every file reads as new | Dev 4 | Yes: the diff at 2:35 in the demo, and the report's changed files |
+| 11 | The diff has no baseline, so every file reads as new | Dev 4 | Fixed on branch `dev4-fixes-items-4-11` |
 | 12 | The unit endpoint returns no verifications | Dev 2 | The Diff screen's per-case table |
 | 13 | Nothing fills the report's runtime timings | Dev 4, Dev 2 | No, the Report leaves the runtime panel out without it |
 

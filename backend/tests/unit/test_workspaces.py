@@ -200,6 +200,24 @@ async def test_the_diff_shows_only_what_changed(world):
     assert "+TAX = 2" in files[0]["unified_diff"]
 
 
+async def test_the_diff_from_rev_baseline_reads_the_snapshot(world, monkeypatch):
+    """Backend issue 11: with no baseline every file read as new."""
+    import app.verification as verification_module
+
+    async def repository_for_run(run_id):
+        return "repo_1"
+
+    monkeypatch.setattr(verification_module, "repository_for_run", repository_for_run)
+
+    ws = await create_workspace("run_1", "repo_1")
+    await apply_patch(ws, patch_for("pricing.py", "TAX = 2\n"), ALLOWED)
+
+    files = await diff("run_1", BASELINE_REVISION, ws.revision_id)
+
+    assert [f["path"] for f in files] == ["pricing.py"]
+    assert files[0]["old_content"] == "TAX = 1\n"
+
+
 async def test_an_unchanged_tree_produces_an_empty_diff(world):
     base = await create_workspace("run_1", "repo_1")
     await accept_workspace(base)

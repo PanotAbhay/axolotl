@@ -195,12 +195,16 @@ async def diff(
 ) -> list[dict]:
     """Per-file unified diff between two revisions.
 
-    `base_revision` of `rev_baseline` needs the repository, which a run knows and
-    this function does not, so the baseline tree is located through the run's own
-    first revision directory when present. Callers that have the repo id should
-    pass real revisions.
+    `rev_baseline` has no run directory: it is the repository's snapshot, the same
+    tree `create_workspace` copies the first workspace from.
     """
-    base_root = revision_path(run_id, base_revision)
+    if base_revision == BASELINE_REVISION:
+        from app.ingestion import snapshot_path
+        from app.verification import repository_for_run
+
+        base_root = snapshot_path(await repository_for_run(run_id))
+    else:
+        base_root = revision_path(run_id, base_revision)
     new_root = revision_path(run_id, revision)
 
     if not new_root.is_dir():
