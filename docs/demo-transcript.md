@@ -26,19 +26,19 @@ old and new on the same inputs, and compares every output.
 
 Axolotl takes any Python project.
 
-Point it at your own and it's parsed, never executed — only an exact content-hash match
+Point it at your own, and it's parsed, never executed — only an exact content-hash match
 runs.
 
 ## 2. Graph — 0:32
 
 Python's `ast` reads the source — no import, no execution.
 
-Modules, symbols and edges go into Atlas. That order becomes the migration order:
-dependencies first, so a failure stays local.
+Modules, symbols and edges go into Atlas — and that structure sets the migration
+order. Dependencies first, so a failure stays local.
 
 ## 3. Plan and approval — 0:46
 
-Gemini proposed this order. Our code checks it really is dependency-first.
+Gemini proposed this order. Our code checks that it really is dependency-first.
 
 Nothing runs until a person approves it. I'm approving it now.
 
@@ -50,23 +50,23 @@ Keyword search returns the wrong function — our identifier analyser splits nam
 "get" matches "get order".
 
 Vector search finds it by meaning instead. Atlas fuses both with rank fusion, and the
-badge confirms that ran natively, inside the database.
+badge confirms it ran natively, inside the database.
 
-## 5. Ask — 1:20
+## 5. Ask — 1:19
 
 The same hybrid search, now as retrieval for Gemini.
 
-Five read-only tools — search, source, symbols, the graph. It cannot patch or verify
+Five read-only tools — search, source, symbols, the graph. It can't patch or verify anything
 from here.
 
-Every answer cites path and line from code it actually read. Find nothing, and it says
+Every answer cites path and line from code it actually read. If it finds nothing, it says
 so rather than inventing.
 
 ---
 
 ## 6. Docs and dependencies — 1:40
 
-Documentation generated for the legacy and the migrated code, side by side.
+Documentation, generated for the legacy and the migrated code, side by side.
 
 And every dependency the migration changed — including the ones carrying known
 vulnerabilities.
@@ -75,7 +75,7 @@ vulnerabilities.
 
 This has been running since we approved the plan.
 
-Every model turn, every tool call, every gate result lands in an append-only journal in
+Every model turn, every tool call, every gate result goes into an append-only journal in
 Atlas as it happens.
 
 A patch stays a proposal until the gates pass.
@@ -84,11 +84,11 @@ A patch stays a proposal until the gates pass.
 
 ## 8. Verification — 2:08
 
-Here is the whole point.
+This is the whole point.
 
 Twenty-four recorded cases. Twelve the model can see; twelve it never will.
 
-The visible twelve pass. A held-out case fails — and that is what blocks it. The agent
+The visible twelve pass. A held-out case fails — and that's what blocks it. The agent
 gets the counterexample, never the hidden input. Then it tries again.
 
 ## 9. Report — 2:29

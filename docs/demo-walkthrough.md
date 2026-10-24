@@ -40,8 +40,8 @@ and a half between them, and do not rush the second: it carries the whole claim.
 | 0:22–0:32 | **New migration.** The bundled demo project is already selected. Point at the upload option beside it | §1 Import | **Encode: permissions.** The trust gate is the first thing a judge sees, before anything runs |
 | 0:32–0:46 | **Graph.** Click one module, follow an import edge | §2 Graph | **Novel.** The dependency graph is not decoration — it controls the order of work |
 | 0:46–1:00 | **Plan.** Scroll the dependency order, then **Approve**, then **Start migration** | §3 Plan and approval | **Encode: human approval**, enforced outside the model. **The run starts here and keeps running** |
-| 1:00–1:20 | **Search.** Query `get the final amount` in **keyword**, then switch to **hybrid** | §4 Search | **MongoDB bounty, the strongest 20 seconds we have.** Atlas Search, Vector Search and native fusion, with the difference visible on screen |
-| 1:20–1:40 | **Ask pane**, same screen. Ask "where is castling decided?" | §5 Ask | **Both bounties at once.** Gemini tool use over Atlas hybrid search, with the evidence shown rather than asserted |
+| 1:00–1:19 | **Search.** Query `get the final amount` in **keyword**, then switch to **hybrid** | §4 Search | **MongoDB bounty, the strongest 20 seconds we have.** Atlas Search, Vector Search and native fusion, with the difference visible on screen |
+| 1:19–1:40 | **Ask pane**, same screen. Ask "where is castling decided?" | §5 Ask | **Both bounties at once.** Gemini tool use over Atlas hybrid search, with the evidence shown rather than asserted |
 | 1:40–1:52 | **Docs**, then **Dependencies** | §6 Docs and dependencies | Breadth. Two screens, one sentence each; do not linger |
 | 1:52–2:08 | **Run.** Point at the live event journal, tool calls, per-unit status | §7 Run | **DeepMind: an agent that uses tools.** Real tool calls, timestamped, not narrated |
 | 2:08–2:29 | **Click a unit → Verification.** Show the visible cases passing, the held-out case failing, the counterexample, then the repair | §8 Verification | **The thesis, and the most important 21 seconds.** This is what "independently verified" means |
