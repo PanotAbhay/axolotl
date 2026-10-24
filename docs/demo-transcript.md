@@ -2,7 +2,8 @@
 
 Spoken words only. Clicks, timings, reasoning and fallbacks are in
 [demo-walkthrough.md](demo-walkthrough.md); delivery rules are in its *Delivery*
-section. Section breaks are where the five speakers change over.
+section. Section breaks are where the speakers change over; who says what is in
+[demo-speakers.md](demo-speakers.md).
 
 **No personal names in the spoken script.** Say "ours", "a teammate", "one of us".
 
@@ -72,7 +73,7 @@ vulnerabilities.
 
 ## 7. Run — 1:52
 
-This has been running since I approved it.
+This has been running since we approved the plan.
 
 Every model turn, every tool call, every gate result lands in an append-only journal in
 Atlas as it happens.
