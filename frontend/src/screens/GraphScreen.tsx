@@ -34,14 +34,15 @@ const FIT = { padding: 0.15, maxZoom: 1 };
 const DASH: Record<Resolution, string | undefined> = { confirmed: undefined, heuristic: '6 4', unresolved: '2 3' };
 const hidden = { visibility: 'hidden' } as const;
 
-type FlowNode = Node<{ node: GraphNode; dim: boolean }>;
+type FlowNode = Node<{ node: GraphNode; dim: boolean; attempt?: number }>;
 
-function ModuleNode({ data: { node, dim }, selected }: NodeProps<FlowNode>) {
+function ModuleNode({ data: { node, dim, attempt }, selected }: NodeProps<FlowNode>) {
   const { icon: Icon, label, tone } = UNIT_STATUS[node.status];
   return (
     <div
       className={cn(
-        'flex flex-col justify-center rounded-md border px-2.5 py-1.5',
+        // A status change fades between tones rather than snapping, so the eye catches which node moved.
+        'flex flex-col justify-center rounded-md border px-2.5 py-1.5 transition-colors duration-200 motion-reduce:transition-none',
         dim ? 'border-border-strong bg-background' : [TONE_BORDER[tone], TONE_TINT[tone]],
         selected && 'outline-2 outline-offset-2 outline-foreground',
       )}
@@ -57,6 +58,7 @@ function ModuleNode({ data: { node, dim }, selected }: NodeProps<FlowNode>) {
         <span className={cn('flex items-center gap-1 text-sm leading-5', TONE_TEXT[tone])}>
           <Icon size={16} aria-hidden />
           {label}
+          {attempt && attempt > 1 && <span className="ml-auto text-muted-foreground">Attempt {attempt}</span>}
         </span>
       )}
       <Handle type="source" position={Position.Bottom} isConnectable={false} style={hidden} />
@@ -147,11 +149,12 @@ function Zoom() {
   );
 }
 
-function Canvas({ graph, selected, filter, onSelect }: {
+function Canvas({ graph, selected, filter, onSelect, attempts }: {
   graph: GraphPayload;
   selected: string | null;
   filter: string;
   onSelect: (id: string | null) => void;
+  attempts?: Map<string, number>;
 }) {
   const edges = useMemo(() => dependencyEdges(graph.edges), [graph]);
   const positions = useMemo(() => layout(graph, edges), [graph, edges]);
@@ -166,7 +169,7 @@ function Canvas({ graph, selected, filter, onSelect }: {
       id: n.id,
       type: external ? 'external' : 'module',
       position: positions.get(n.id)!,
-      data: { node: n, dim },
+      data: { node: n, dim, attempt: n.unit_id ? attempts?.get(n.unit_id) : undefined },
       selected: n.id === selected,
       selectable: !external,
       focusable: !external,
@@ -229,6 +232,7 @@ export function GraphArea({ graph, ...canvas }: {
   selected: string | null;
   filter: string;
   onSelect: (id: string | null) => void;
+  attempts?: Map<string, number>;
 }) {
   return (
     <div className="@container relative min-h-[420px] flex-1 bg-background bg-[linear-gradient(var(--grid)_1px,transparent_1px),linear-gradient(90deg,var(--grid)_1px,transparent_1px)] bg-size-[24px_24px]">

@@ -15,7 +15,7 @@ import {
   type Icon,
 } from '@phosphor-icons/react';
 
-import type { DependencyStatus, RunState, SystemStatus, UnitStatus } from '@/types/contracts';
+import type { DependencyStatus, GateStatus, RunState, SystemStatus, UnitStatus } from '@/types/contracts';
 
 export type Tone = 'neutral' | 'working' | 'repairing' | 'warning' | 'passed' | 'failed';
 type StatusStyle = { icon: Icon; label: string; tone: Tone };
@@ -41,6 +41,14 @@ export const RUN_STATE: Record<RunState, StatusStyle> = {
   completed: { icon: CheckCircleIcon, label: 'Completed', tone: 'passed' },
   completed_with_warnings: { icon: WarningIcon, label: 'Completed with warnings', tone: 'warning' },
   cancelled: { icon: MinusCircleIcon, label: 'Cancelled', tone: 'neutral' },
+};
+
+/** Gate chips. The chip's value says the result in words; skipped gets a dashed outline. Template: kit.css `.gate`. */
+export const GATE_STATUS: Record<GateStatus, { icon: Icon; tone: Tone }> = {
+  passed: { icon: CheckCircleIcon, tone: 'passed' },
+  failed: { icon: XCircleIcon, tone: 'failed' },
+  inconclusive: { icon: WarningIcon, tone: 'warning' },
+  skipped: { icon: CircleDashedIcon, tone: 'neutral' },
 };
 
 // Whole class names, so Tailwind's scanner finds them. Neutral states get the strong border, as in the template.

@@ -1,4 +1,12 @@
-import { CircleIcon, ListChecksIcon, XCircleIcon } from '@phosphor-icons/react';
+import {
+  ArrowClockwiseIcon,
+  CaretRightIcon,
+  CheckCircleIcon,
+  CircleIcon,
+  HourglassIcon,
+  ListChecksIcon,
+  XCircleIcon,
+} from '@phosphor-icons/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cn } from 'cn';
 import { useRef, useState } from 'react';
@@ -8,27 +16,79 @@ import { Link, useOutletContext, useParams, useSearchParams } from 'react-router
 import { ApiError, cancelRun, getGraph, getPlan, listRunEvents } from '@/api/client';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { isLive, POLL_MS, useRun } from '@/lib/run';
-import { RUN_STATE, TONE_BORDER, TONE_TEXT, TONE_TINT } from '@/lib/status';
+import { eventRows, type EventRow, type GateChip } from '@/lib/events';
+import { attemptOf, isLive, POLL_MS, useRun } from '@/lib/run';
+import { GATE_STATUS, RUN_STATE, TONE_BORDER, TONE_TEXT, TONE_TINT } from '@/lib/status';
 import { GraphArea } from '@/screens/GraphScreen';
 import { Field } from '@/screens/Overview';
 import type { RunEvent, RunSummary } from '@/types/contracts';
 
-const FAIL = new Set(['verification_failed', 'patch_rejected', 'unit_blocked', 'error']);
 // worker.py turns the run terminal first, then records report_generated or an error event.
 const CLOSING = new Set(['report_generated', 'error']);
 // ponytail: a run that ends with no closing event (a backend restart) stops being polled after this.
 const CLOSING_WAIT_MS = 120_000;
 const time = (iso: string) => new Date(iso).toLocaleTimeString('en-GB');
+const ROW_ICON = { event: CircleIcon, ok: CheckCircleIcon, wait: HourglassIcon, repair: ArrowClockwiseIcon, fail: XCircleIcon };
 
-// ponytail: generic payload flattening; step 4 gives tool calls, turns and gates their own rows.
-function describe(e: RunEvent, unit: (id: string) => string) {
-  const p = e.payload;
-  const detail =
-    typeof p.from === 'string' && typeof p.to === 'string'
-      ? `${p.from} to ${p.to}`
-      : Object.values(p).filter((v) => typeof v === 'string' || typeof v === 'number').join(', ');
-  return [e.unit_id && unit(e.unit_id), detail, e.attempt && `attempt ${e.attempt}`].filter(Boolean).join(', ');
+/** Template: kit.css `.gate`. The summary, such as "12 passed in 0.23s", is in the tooltip. */
+function Gate({ gate }: { gate: GateChip }) {
+  const { icon: Icon, tone } = GATE_STATUS[gate.status] ?? GATE_STATUS.skipped;
+  return (
+    <span
+      title={gate.summary || undefined}
+      className={cn(
+        'inline-flex h-7 items-center gap-1 rounded-sm px-2 text-sm whitespace-nowrap',
+        gate.status === 'skipped' ? 'border border-dashed border-border-strong' : TONE_TINT[tone],
+      )}
+    >
+      <Icon size={16} aria-hidden className={TONE_TEXT[tone]} />
+      {gate.label} <span className={cn('font-medium', TONE_TEXT[tone])}>{gate.value}</span>
+    </span>
+  );
+}
+
+/** One log row. Rows with gates or Argon's own words expand; failures start open. Template: kit.js `ev`. */
+function EventLine({ row }: { row: EventRow }) {
+  const fail = row.kind === 'fail';
+  const more = Boolean(row.detail?.length || row.gates?.length);
+  const caret = more && !fail;
+  const Icon = caret ? CaretRightIcon : ROW_ICON[row.kind];
+  const box = 'flex h-9 items-center gap-2 px-4 text-sm whitespace-nowrap';
+  const line = (
+    <>
+      <Icon
+        size={16}
+        aria-hidden
+        className={cn('flex-none', fail ? 'text-failed' : 'text-muted-foreground', caret && 'transition-transform group-open:rotate-90 motion-reduce:transition-none')}
+      />
+      <span className="font-mono text-muted-foreground">{time(row.timestamp)}</span>
+      <span className={cn('font-mono font-medium', fail && 'text-failed')}>{row.name}</span>
+      <span className="min-w-0 flex-1 truncate text-muted-foreground">{row.text}</span>
+    </>
+  );
+  if (!more) {
+    return (
+      <div title={row.text} className={cn(box, 'border-b', fail && 'bg-failed-tint')}>
+        {line}
+      </div>
+    );
+  }
+  return (
+    <details open={fail} className={cn('group border-b', fail && 'bg-failed-tint')}>
+      <summary title={row.text} className={cn(box, 'cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring', fail ? 'hover:bg-failed-tint' : 'hover:bg-muted')}>
+        {line}
+      </summary>
+      <div className="flex flex-col gap-2 px-4 pb-3 text-sm">
+        {row.gates?.length ? <div className="flex flex-wrap gap-2">{row.gates.map((g) => <Gate key={g.gate} gate={g} />)}</div> : null}
+        {row.detail?.map((d) => (
+          <p key={d.label} className="break-words whitespace-pre-wrap">
+            <span className="block font-medium text-muted-foreground">{d.label}</span>
+            {d.text}
+          </p>
+        ))}
+      </div>
+    </details>
+  );
 }
 
 /** Spec §9.3: fetch only what is after the last sequence held, and drop anything already seen. */
@@ -86,7 +146,11 @@ function Dashboard({ repoId, run }: { repoId: string; run: RunSummary }) {
     onSuccess: (r) => qc.setQueryData(['run', r.run_id], r),
   });
 
-  const paths = new Map(plan.data?.units.map((u) => [u.unit_id, u.file_paths.join(', ')]));
+  // Unit and module IDs both read as file paths.
+  const paths = new Map([
+    ...(graph.data?.nodes.map((n) => [n.id, n.path ?? n.label] as const) ?? []),
+    ...(plan.data?.units.map((u) => [u.unit_id, u.file_paths.join(', ')] as const) ?? []),
+  ]);
   const unit = (id: string) => paths.get(id) ?? id;
   const current = run.units.find((u) => u.unit_id === run.current_unit);
   // The graph follows the run's current unit until someone picks a module.
@@ -95,6 +159,8 @@ function Dashboard({ repoId, run }: { repoId: string; run: RunSummary }) {
   const cancelButton = useRef<HTMLButtonElement>(null);
   const log = events.data ?? [];
   const last = log.at(-1);
+  const { rows, gates, attempts: patched } = eventRows(log, unit);
+  const attempts = new Map(run.units.map((u) => [u.unit_id, attemptOf(u, patched.get(u.unit_id))]));
   const tests = run.tests_passed + run.tests_failed + run.tests_inconclusive;
   const { icon: StateIcon, label: state, tone } = RUN_STATE[run.state];
 
@@ -108,8 +174,7 @@ function Dashboard({ repoId, run }: { repoId: string; run: RunSummary }) {
         <Field label="Current unit">
           {current ? <span className="font-mono font-medium">{unit(current.unit_id)}</span> : <span className="text-muted-foreground">{live ? 'None yet' : 'None'}</span>}
         </Field>
-        {/* attempts counts submitted patches, so it reads 0 while the first one is being written. */}
-        <Field label="Attempt">{current ? Math.max(current.attempts, 1) : '–'}</Field>
+        <Field label="Attempt">{current ? attempts.get(current.unit_id) : '–'}</Field>
         <Field label="Tests">
           {tests ? `${run.tests_passed} passed, ${run.tests_failed} failed${run.tests_inconclusive ? `, ${run.tests_inconclusive} inconclusive` : ''}` : 'Not run yet'}
         </Field>
@@ -154,9 +219,21 @@ function Dashboard({ repoId, run }: { repoId: string; run: RunSummary }) {
       )}
 
       <div className="flex min-h-[480px] flex-1">
-        <GraphArea graph={graph} selected={picked === undefined ? (current?.module_ids[0] ?? null) : picked} filter="" onSelect={setPicked} />
+        <GraphArea graph={graph} selected={picked === undefined ? (current?.module_ids[0] ?? null) : picked} filter="" onSelect={setPicked} attempts={attempts} />
         <aside aria-label="Run events" className="relative w-[400px] flex-none border-l bg-card xl:w-[440px] min-[1300px]:w-[480px]">
           <div className="absolute inset-0 flex flex-col">
+            <section className="flex flex-none flex-col gap-2 border-b px-4 py-3">
+              <h2 className="text-sm font-medium text-muted-foreground">{gates ? `Gates, ${gates.title}` : 'Gates'}</h2>
+              {gates?.gates.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {gates.gates.map((g) => (
+                    <Gate key={g.gate} gate={g} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{gates ? 'Verifying. Each gate reports here as it finishes.' : 'No gate results yet. Gates report as each unit is verified.'}</p>
+              )}
+            </section>
             <div className="flex flex-none items-baseline justify-between gap-3 border-b px-4 py-3">
               <h2 className="text-sm font-medium text-muted-foreground">Events</h2>
               <span className="text-sm text-muted-foreground">Newest at the bottom</span>
@@ -172,18 +249,9 @@ function Dashboard({ repoId, run }: { repoId: string; run: RunSummary }) {
               <div className="mb-auto">
                 {events.isError && !log.length && <p className="px-4 py-3 text-sm text-muted-foreground">Couldn’t load the events: {events.error.message}</p>}
                 {events.isSuccess && !log.length && <p className="px-4 py-3 text-sm text-muted-foreground">No events yet. The run records one at each step.</p>}
-                {log.map((e) => {
-                  const fail = FAIL.has(e.event_type);
-                  const text = describe(e, unit);
-                  return (
-                    <div key={e.sequence} title={text} className={cn('flex h-9 items-center gap-2 border-b px-4 text-sm whitespace-nowrap', fail && 'bg-failed-tint')}>
-                      {fail ? <XCircleIcon size={16} aria-hidden className="flex-none text-failed" /> : <CircleIcon size={16} aria-hidden className="flex-none text-muted-foreground" />}
-                      <span className="font-mono text-muted-foreground">{time(e.timestamp)}</span>
-                      <span className={cn('font-mono font-medium', fail && 'text-failed')}>{e.event_type}</span>
-                      <span className="min-w-0 flex-1 truncate text-muted-foreground">{text}</span>
-                    </div>
-                  );
-                })}
+                {rows.map((row) => (
+                  <EventLine key={row.sequence} row={row} />
+                ))}
               </div>
             </div>
             <p className="flex-none border-t px-4 py-3 text-sm text-muted-foreground">
