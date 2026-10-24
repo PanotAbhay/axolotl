@@ -1703,3 +1703,14 @@ tests (1 new, beside Dev 2's in `test_api_without_database.py`), ruff clean.
 
 Also: `docs/backend-issues.md` is gone (`60c3235`); GitHub issues are the source of truth for team
 issues from now on. Item 1, already fixed in `edd19ea`, became #51 and is closed.
+
+---
+
+## Chess is the only demo
+
+Decided 24 Oct: the team is building Axolotl for the chess demo only (Python 2.7 → 3.14), with no
+backup demo. Every doc that called `legacy_orders` the backup now says so. The `legacy_orders`
+fixture is **not deleted yet**: it is the only project the sandbox can run today, and 14 backend
+test files plus the CI sandbox job use it. It is now described as the test fixture, and
+[#54](https://github.com/Prittstick22/axolotl/issues/54) deletes it once chess runs end to end and
+the tests move to chess.

@@ -1,9 +1,8 @@
 # Agent Brief — Dev 4: Demo Fixture, Sandbox Runner & Differential Verifier
 
-> **Changed 24 Oct 2026:** Dev 4 now also owns the demo script, the three videos and the
-> presentation ([#14](https://github.com/Prittstick22/axolotl/issues/14), [#15](https://github.com/Prittstick22/axolotl/issues/15), [#31](https://github.com/Prittstick22/axolotl/issues/31)). The demo is chess (Python 2.7 →
-> 3.14), so the dual-runtime sandbox and chess cases are MVP ([#22](https://github.com/Prittstick22/axolotl/issues/22), [#23](https://github.com/Prittstick22/axolotl/issues/23)).
-> `legacy_orders` stays as the backup. See [PROJECT_STATUS.md](../PROJECT_STATUS.md).
+> **Changed 24 Oct 2026:** the demo is chess (Python 2.7 → 3.14), the only demo, so the chess
+> cases are MVP ([#23](https://github.com/Prittstick22/axolotl/issues/23)). `legacy_orders` below is no longer a demo: it is only the test
+> fixture until chess replaces it ([#54](https://github.com/Prittstick22/axolotl/issues/54)). See [PROJECT_STATUS.md](../PROJECT_STATUS.md).
 
 You are the implementation agent for **Dev 4** on Axolotl (Encode London 2026). You have three documents:
 1. `Axolotl_Product_Requirements_and_Implementation_Handoff.md` — the Spec

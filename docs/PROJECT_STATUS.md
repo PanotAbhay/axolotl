@@ -8,7 +8,7 @@ role, as in [TEAM_SPLIT](planning/TEAM_SPLIT.md).
 
 | Label | Meaning |
 |---|---|
-| `MVP` | Top priority. Needed for the chess demo, the backup demo or the submission. |
+| `MVP` | Top priority. Needed for the chess demo or the submission. |
 | `demo` | Preparing and recording the demo. Not MVP; unassigned for now. |
 | `feature` | After the MVP. A new capability or an improvement. |
 | `bug` with no `MVP` | A defect that doesn't block the demo. Fix it after the MVP tickets. |
@@ -31,13 +31,14 @@ Time left: feature freeze **Sat 22:00**, submission **Sun 10:45** (cutoff 12:00)
 
 ## Decisions, 24 Oct
 
-- **Chess is the MVP demo.** Will's terminal chess game, migrated from Python 2.7 to Python
+- **Chess is the only demo.** Will's terminal chess game, migrated from Python 2.7 to Python
   3.14. It can't be migrated yet; that is tracked as a bug,
   [#30](https://github.com/Prittstick22/axolotl/issues/30), with one sub-ticket per piece. The
   Spec listed Python 2 → 3 as a hackathon non-goal; this decision overrides it, and the sandbox
   and safety rules still apply.
-- **`legacy_orders` is the backup demo.** It stays in the repo and must keep working
-  (Modern Python 3 target). Its tickets stay MVP.
+- **There is no backup demo.** `legacy_orders` stays in the repo only as the test fixture the
+  backend tests and the sandbox run on today. It is deleted once chess runs end to end
+  ([#54](https://github.com/Prittstick22/axolotl/issues/54)).
 - **Demo work is not MVP.** The demo script, the presentation and the videos
   ([#14](https://github.com/Prittstick22/axolotl/issues/14), [#31](https://github.com/Prittstick22/axolotl/issues/31), [#15](https://github.com/Prittstick22/axolotl/issues/15)) are labelled `demo` and are unassigned for now. Do them last.
 
@@ -123,10 +124,9 @@ Chess needs every piece below before a live run is possible. Close them, then cl
 | [#2](https://github.com/Prittstick22/axolotl/issues/2) Units with no visible cases can pass (fixed; review and close) | Dev 4 | — |
 | [#44](https://github.com/Prittstick22/axolotl/issues/44) The diff reads the real baseline (fixed; review and close) | Dev 4 | — |
 | [#3](https://github.com/Prittstick22/axolotl/issues/3) The plan shows the wrong risk for every unit | Dev 2 | — |
-| [#4](https://github.com/Prittstick22/axolotl/issues/4) Run chess end to end on the live stack and capture a real repair; record a `legacy_orders` backup run | Dev 1 | #30, #47 |
+| [#4](https://github.com/Prittstick22/axolotl/issues/4) Run chess end to end on the live stack and capture a real repair | Dev 1 | #30, #47 |
 | [#5](https://github.com/Prittstick22/axolotl/issues/5) Build screen 07: Verification / Diff | Dev 5 | #44 |
 | [#7](https://github.com/Prittstick22/axolotl/issues/7) Cold-start end-to-end dry run from the README | Dev 2 | #4, #5, #6 |
-| [#10](https://github.com/Prittstick22/axolotl/issues/10) Confirm the `legacy_orders` fixture parameters (backup demo) | Dev 4 | — |
 | [#11](https://github.com/Prittstick22/axolotl/issues/11) Protect the Gemini embedding quota and prime the replay cache | Dev 3 | — |
 
 ### Submission
@@ -140,7 +140,7 @@ Chess needs every piece below before a live run is possible. Close them, then cl
 
 ## Demo, not MVP
 
-Unassigned for now. Do these last, once the chess run (or the `legacy_orders` backup) works end to end, so the script
+Unassigned for now. Do these last, once the chess run works end to end, so the script
 and videos show the real product.
 
 | Issue | Owner | Depends on |
@@ -163,6 +163,7 @@ fixture sign-off (#10) and the chess cases (#23), which suit the person who wrot
 | [#26](https://github.com/Prittstick22/axolotl/issues/26) Make snapshots available on every machine | Dev 3 |
 | [#27](https://github.com/Prittstick22/axolotl/issues/27) Run API additions for the Run screen | Dev 2 |
 | [#46](https://github.com/Prittstick22/axolotl/issues/46) Runtime timings in the report (decide first) | Dev 4, Dev 2 |
+| [#54](https://github.com/Prittstick22/axolotl/issues/54) Delete `legacy_orders` once chess runs end to end and the tests use chess | Anyone |
 
 ### Requested by the project manager, 24 Oct
 
@@ -194,7 +195,7 @@ pulled forward if the MVP is on track.
 | Dev 4 · `WilliamParis1` | [#2](https://github.com/Prittstick22/axolotl/issues/2) (review), [#44](https://github.com/Prittstick22/axolotl/issues/44) (review), [#9](https://github.com/Prittstick22/axolotl/issues/9), [#10](https://github.com/Prittstick22/axolotl/issues/10), [#23](https://github.com/Prittstick22/axolotl/issues/23) | — | [#46](https://github.com/Prittstick22/axolotl/issues/46) |
 | Dev 5 · `PanotAbhay` | [#5](https://github.com/Prittstick22/axolotl/issues/5) | — | [#20](https://github.com/Prittstick22/axolotl/issues/20), [#34](https://github.com/Prittstick22/axolotl/issues/34), [#35](https://github.com/Prittstick22/axolotl/issues/35), [#36](https://github.com/Prittstick22/axolotl/issues/36), [#37](https://github.com/Prittstick22/axolotl/issues/37), [#38](https://github.com/Prittstick22/axolotl/issues/38), [#40](https://github.com/Prittstick22/axolotl/issues/40) |
 | Demo, unassigned | — | — | [#14](https://github.com/Prittstick22/axolotl/issues/14), [#31](https://github.com/Prittstick22/axolotl/issues/31), [#15](https://github.com/Prittstick22/axolotl/issues/15) (`demo`, not MVP) |
-| Anyone | — | — | [#41](https://github.com/Prittstick22/axolotl/issues/41) (spike), [#42](https://github.com/Prittstick22/axolotl/issues/42) (stretch), [#43](https://github.com/Prittstick22/axolotl/issues/43) (spike, stretch) |
+| Anyone | — | — | [#54](https://github.com/Prittstick22/axolotl/issues/54) (cleanup), [#41](https://github.com/Prittstick22/axolotl/issues/41) (spike), [#42](https://github.com/Prittstick22/axolotl/issues/42) (stretch), [#43](https://github.com/Prittstick22/axolotl/issues/43) (spike, stretch) |
 
 ## Product features
 
@@ -204,7 +205,7 @@ What Axolotl does, built or planned. ✅ is on `main`; a ticket number means it 
 
 | Feature | State |
 |---|---|
-| Import the trusted `legacy_orders` demo fixture | ✅ |
+| Import the trusted `legacy_orders` test fixture (not a demo; deleted later, [#54](https://github.com/Prittstick22/axolotl/issues/54)) | ✅ |
 | Upload a ZIP (static analysis only) | ✅ |
 | Upload a project folder | ✅ (screen landed in `64ba380`) |
 | Upload safety: traversal, symlinks, decompression bombs, size, file and depth caps; `.env`, virtualenvs and caches dropped | ✅ |
@@ -240,7 +241,7 @@ What Axolotl does, built or planned. ✅ is on `main`; a ticket number means it 
 | Feature | State |
 |---|---|
 | Migration targets, with unsupported ones shown disabled and why | ✅ |
-| Modern Python 3 target (backup demo) | ✅ |
+| Modern Python 3 target (used only by the test fixture) | ✅ |
 | Python 2.7 → 3.14 target (MVP demo) | [#21](https://github.com/Prittstick22/axolotl/issues/21) |
 | Argon proposes a dependency-ordered plan, validated in code | ✅ |
 | Per-unit risk and visible case counts | ✅, risk wrong: [#3](https://github.com/Prittstick22/axolotl/issues/3) |

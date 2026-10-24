@@ -10,9 +10,9 @@ How to use: give **each developer's agent three files** — the original Spec, `
 | **Dev 4 — Verifier** | Legacy demo fixture, held-out cases, Docker sandbox, workspaces/patches, differential verifier, demo script, videos, presentation | `AGENT_DEV4_VERIFIER_SANDBOX_FIXTURE.md` | `docs/safety-and-limitations.md`, demo script, 3 videos, presentation |
 | **Dev 5 — Frontend** | React app, graph UI, run dashboard, diff/report, search UI | `AGENT_DEV5_FRONTEND.md` | The UI the demo runs on |
 
-> **Changed 24 Oct 2026:** the demo script, the three videos and the presentation moved
-> from Dev 5 to Dev 4. Chess (Python 2.7 → 3.14) is the MVP demo, with `legacy_orders`
-> as the backup. See [PROJECT_STATUS.md](../PROJECT_STATUS.md).
+> **Changed 24 Oct 2026:** the demo script, the three videos and the presentation are
+> separate demo work, not MVP and unassigned for now. Chess (Python 2.7 → 3.14) is the
+> only demo, with no backup. See [PROJECT_STATUS.md](../PROJECT_STATUS.md).
 
 ## How the pieces connect
 

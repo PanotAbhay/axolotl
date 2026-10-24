@@ -14,7 +14,7 @@
 ## 0. Read this first — decisions, priorities and non-negotiables
 
 > **Overridden 24 Oct 2026:** the team chose Python 2.7 → 3.14 (Will's chess game) as
-> the MVP demo, with `legacy_orders` and Modern Python 3 as the backup. Where this Spec
+> the only demo, with no backup; `legacy_orders` remains only as a test fixture. Where this Spec
 > lists Python 2 → 3 as a non-goal or names Modern Python 3 as the one MVP target, the
 > decision wins. The sandbox and safety rules still apply unchanged. See
 > [PROJECT_STATUS.md](../PROJECT_STATUS.md).
