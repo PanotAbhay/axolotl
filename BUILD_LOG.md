@@ -1638,8 +1638,7 @@ import gets the `legacy_orders` held-out cases (#29), and an import waits for se
 
 ## Dev 5 for Dev 4: units with no cases can pass, and the diff has a baseline
 
-Items 4 and 11 in [docs/backend-issues.md](docs/backend-issues.md) (#2 and #44), on branch
-`dev4-fixes-items-4-11` for Dev 4 to review.
+Items 4 and 11 in [docs/backend-issues.md](docs/backend-issues.md) (#2 and #44), from Dev 5.
 
 - **Item 4, units with no cases.** `_comparison_gate` marked the differential gate as required
   even with no cases, so its `skipped` status failed every attempt: `storage.py` passed every
@@ -1656,6 +1655,14 @@ Items 4 and 11 in [docs/backend-issues.md](docs/backend-issues.md) (#2 and #44),
 - **The recorded run's report is unchanged.** Its `changed_files` and `migration.patch` were
   written at report time from the old diff, so they still list 9 files. A new run gets the
   right ones. The diff endpoint is computed per request, so it is right for the old run too.
+
+- **Live, on Atlas Local.** In `run_e5380c4d180c` (same plan as `run_bb0da2e79534`),
+  `storage.py` passed on its first attempt: compile, impacted tests (9 of its dependants' cases
+  agree), existing tests (12 passed) and sandbox policy passed, and the differential was skipped and
+  not required. `orders.py` passed after it, so the run reached 4 of 6 units instead of 2. The
+  report of `run_60c18c27a651` lists `customers.py` and `pricing.py` as changed, and its
+  `migration.patch` covers the same 2 files. `refunds.py` was then lost to a failed Argon call,
+  logged as backend issue 14.
 
 565 offline backend tests (3 new), 9 container tests, ruff clean. No frontend changes: the Run
 screen already shows a non-required skipped gate as "Differential skipped".

@@ -3,24 +3,26 @@
 Items 1–3 (23 Oct 2026) came up while folding Dev 1's explorer into the main screens. Items 4–8
 (24 Oct 2026) came up while building the Plan and Run screens against Atlas Local, and items 9–13
 (24 Oct 2026) while building the run timeline and checking the endpoints the Diff and Report screens
-need. Item 1 is fixed on main (`edd19ea`); nothing else here is fixed in the backend yet. Where the
-frontend works around an issue, the item says so.
+need. Item 14 (24 Oct 2026) came up while testing the fixes for items 4 and 11 live. Items 1, 4
+and 11 are fixed on main; nothing else here is fixed in the backend yet. Where the frontend works
+around an issue, the item says so.
 
 | # | Issue | Owner | Blocks the demo? |
 |---|---|---|---|
 | 1 | The runtime endpoint returns 500 on other machines | Dev 1 | Fixed in `edd19ea` |
 | 2 | Chess can't be migrated from 2.7 to 3.14 yet | Dev 2, Dev 3, Dev 4 | The chess demo |
 | 3 | The explorer is now part of screens 01–04 | Dev 1 | No |
-| 4 | Units with no visible cases can never pass | Dev 4 | Fixed on branch `dev4-fixes-items-4-11` |
+| 4 | Units with no visible cases can never pass | Dev 4 | Fixed in `45fe5a5` |
 | 5 | Risk ignores the visible case counts | Dev 2 | No, but the plan shows the wrong risk |
 | 6 | A run turns terminal before its last event | Dev 2 | No, the frontend works around it |
 | 7 | Interrupted runs keep their running unit states | Dev 2 | No |
 | 8 | Questions | Dev 2 | No |
 | 9 | Importing chess takes minutes because of search indexing | Dev 1, Dev 3 | Only if chess is uploaded live |
 | 10 | A unit's `attempts` reads 0 until the unit ends | Dev 2 | No, the frontend works around it |
-| 11 | The diff has no baseline, so every file reads as new | Dev 4 | Fixed on branch `dev4-fixes-items-4-11` |
+| 11 | The diff has no baseline, so every file reads as new | Dev 4 | Fixed in `45fe5a5` |
 | 12 | The unit endpoint returns no verifications | Dev 2 | The Diff screen's per-case table |
 | 13 | Nothing fills the report's runtime timings | Dev 4, Dev 2 | No, the Report leaves the runtime panel out without it |
+| 14 | A failed Argon call blocks a unit, and the reason says verification failed | Dev 1, Dev 2 | Yes: two live runs on 24 Oct each lost a unit |
 
 ## 1. The runtime endpoint returns 500 for repos imported on another machine
 
@@ -246,3 +248,32 @@ fill `performance` (Dev 2)? If not, the Report leaves the runtime panel out inst
 Decided by Dev 5 on 24 Oct: the Report keeps the before/after runtime panel. If this question has
 no answer when the Report screen is built, the panel is left out. `CaseOutcome.duration_ns`
 ("median call time inside the harness") is already in the contract, but nothing fills it yet.
+
+## 14. A failed Argon call blocks a unit, and the reason says verification failed (Dev 1, Dev 2)
+
+Two live `legacy_orders` runs on 24 Oct (Atlas Local, with the fixes for items 4 and 11) each lost
+a unit this way:
+
+- `run_60c18c27a651`: `storage.py` went from `migrating` to `blocked` with no tool calls and no
+  verification. Just before, the backend log shows `429 Too Many Requests` from
+  `POST /v1beta/interactions`. Its three dependants were skipped, and the run ended at 2 of 6 units.
+- `run_e5380c4d180c`: `refunds.py` made 4 tool calls and was blocked 65 ms after the last result,
+  with no patch. No response is logged for the model call after those tool calls, so it may have
+  been a dropped connection. `main.py` was skipped, and the run ended at 4 of 6 units.
+
+Both units got `unit_blocked` with "no verification passed within the attempt budget", and neither
+has an `error` event, so the Run screen shows a verification failure that never happened.
+
+| Where | What happens | Owner |
+|---|---|---|
+| [gemini_client.py:105](../backend/app/agents/gemini_client.py) | A 429 is retried 3 times, after 1, 2 and 4 s. A per-minute quota can need up to a minute. Other errors aren't retried. | Dev 1 |
+| [sessions.py:173](../backend/app/agents/sessions.py) | `run_unit_session` catches every exception and returns `ended_because="error"` with the message instead of raising it. | Dev 1 |
+| [worker.py:362](../backend/app/orchestration/worker.py) | `_run_unit_session` ignores the returned outcome, so no `error` event is recorded and `_block` uses its default reason. | Dev 2 |
+
+Because the outcome is discarded, the exact error for `refunds.py` is lost.
+
+Suggested fix: on a 429, wait for the delay the error gives (`retryDelay`) or back off for up to
+about a minute, and retry a dropped connection once. When the outcome is `error`, record an `error`
+event with its message and use it as the block reason, as the worker already does for
+`IntegrationUnavailable`. Recording `ended_because` for every outcome would explain any other early
+end too. On the hackathon's free credits this can stop the live demo partway through.
