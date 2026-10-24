@@ -29,9 +29,9 @@ and a half between them, and do not rush the second: it carries the whole claim.
 
 | Time | Click / show | Say | Why it earns the time |
 |---|---|---|---|
-| 0:22–0:34 | **New migration.** Chess is already selected as a built-in fixture. Point at the upload option beside it | "Chess ships with the project, so it runs on any laptop. Anything you upload instead is read, never executed — only an exact content match of a trusted fixture is allowed to run." | **Encode: permissions.** The trust gate is the first thing a judge sees, before anything runs |
-| 0:34–0:46 | **Graph.** Click one module, follow an import edge | "Python's own parser reads the source without importing or running it. These edges are facts from the code, and they decide the migration order." | **Novel.** The dependency graph is not decoration — it controls the order of work |
-| 0:46–1:00 | **Plan.** Scroll the dependency order, then **Approve**, then **Start migration** | "Argon proposed this order; code checks it is dependency-first. Nothing runs until a person approves it. I'm approving it now." | **Encode: human approval.** A real gate, enforced outside the model. **The run starts here and keeps running** |
+| 0:22–0:35 | **New migration.** Chess is already selected as a built-in fixture. Point at the upload option beside it | "Chess ships with the project, so it runs on any laptop. Anything you upload instead is read, never executed — only an exact content match of a trusted fixture is allowed to run." | **Encode: permissions.** The trust gate is the first thing a judge sees, before anything runs |
+| 0:35–0:48 | **Graph.** Click one module, follow an import edge | "Python's own parser reads the source without importing or running it. These edges are facts from the code, and they decide the migration order." | **Novel.** The dependency graph is not decoration — it controls the order of work |
+| 0:48–1:00 | **Plan.** Scroll the dependency order, then **Approve**, then **Start migration** | "Argon proposed this order; code checks it is dependency-first. Nothing runs until a person approves it. I'm approving it now." | **Encode: human approval.** A real gate, enforced outside the model. **The run starts here and keeps running** |
 | 1:00–1:20 | **Search.** Query `get the final amount` in **keyword**, then switch to **hybrid** | "Keyword search returns the wrong function — 'get' matches `get_order`. Hybrid finds the right one, and the badge says `native_hybrid`, so that is Atlas's own `$rankFusion`, not something we faked in Python." | **MongoDB bounty, the strongest 20 seconds we have.** Atlas Search, Vector Search and native hybrid fusion, with the difference visible on screen |
 | 1:20–1:40 | **Ask pane**, same screen. Ask "where is castling decided?" | "Same hybrid search, now as retrieval for Gemini. Every answer cites `path:line` from code it actually read, and underneath you can see the retrieval — which tools ran, which engine answered. If it finds nothing it says so rather than inventing." | **Both bounties at once.** Gemini tool use over Atlas hybrid search, with the evidence shown, not asserted |
 | 1:40–1:52 | **Docs**, then **Dependencies** | "Documentation generated for the legacy and the migrated code side by side. And the dependency changes the migration introduced — including packages with known vulnerabilities." | Breadth. Two screens, one sentence each; do not linger |
@@ -46,11 +46,11 @@ thing in the demo. Eighteen seconds for thirty-six words is deliberate.
 
 ## Delivery
 
-The transcript is 366 spoken words across 180 seconds: **122 words a minute**, against a
-normal demo pace of 130 to 150. Every individual beat sits between 94 and 140. If one
+The transcript is 392 spoken words across 180 seconds: **131 words a minute**, against a
+normal demo pace of 130 to 150. Every individual beat sits between 110 and 140. If one
 feels rushed, the cause is a skipped pause rather than too many words.
 
-The slackest beat is 0:46 to 1:00, at 94 — and that is correct, because it is two clicks
+The slackest beat is 0:48 to 1:00, at 110 — and that is correct, because it is two clicks
 and waiting for the run to actually start. Do not fill that silence.
 
 These numbers were measured from the transcript, not estimated. Re-measure if the words

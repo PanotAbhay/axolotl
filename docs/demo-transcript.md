@@ -4,7 +4,7 @@ Spoken words only. Clicks, timings, reasoning and fallbacks are in
 [demo-walkthrough.md](demo-walkthrough.md); delivery rules are in its *Delivery*
 section. Section breaks are where the five speakers change over.
 
-Every section sits between 94 and 135 words a minute. Nothing here needs to be rushed,
+Every section sits between 102 and 140 words a minute. Nothing here needs to be rushed,
 and if a beat feels rushed, the cause is a skipped pause rather than too many words.
 
 ---
@@ -14,64 +14,68 @@ and if a beat feels rushed, the cause is a skipped pause rather than too many wo
 Every team has code nobody dares touch. Not because it's bad — because nobody can prove
 a rewrite still behaves the same.
 
-Will's chess game is stuck on Python 2.7. Axolotl migrates it to 3.14, and an
-independent verifier — not the AI — decides if each change is safe.
+Will's chess game is stuck on Python 2.7. Axolotl migrates it to 3.14, then runs old and
+new on the same inputs, in containers, and compares every output.
 
 ---
 
 ## 1. Import — 0:22
 
-Chess ships with the project, so it runs on any laptop.
+Chess ships with the project, so every laptop gets the same repository.
 
-Anything you upload instead is read, never executed. Only an exact match of a trusted
-fixture runs.
+Upload anything else and it's parsed, never executed — only an exact content-hash match
+is allowed to run.
 
-## 2. Graph — 0:34
+## 2. Graph — 0:35
 
-Python's own parser reads the source, without importing it and without running it.
+Python's `ast` reads the source — no import, no execution.
 
-These edges are facts from the code — and they decide the migration order.
+Modules, symbols and edges go into Atlas. That order becomes the migration order:
+dependencies first, so a failure stays local.
 
-## 3. Plan and approval — 0:46
+## 3. Plan and approval — 0:48
 
-Argon proposed this order. Code checks that it is dependency-first.
+Gemini proposed this order. Our code checks it really is dependency-first.
 
-Nothing runs until a person approves it. I am approving it now.
+Nothing runs until a person approves it. I'm approving it now.
 
 ---
 
 ## 4. Search — 1:00
 
-Keyword search returns the wrong function. "Get" matches "get order".
+Keyword search returns the wrong function — our identifier analyser splits names, so
+"get" matches "get order".
 
-Hybrid finds the right one — and the badge says native hybrid, so that is Atlas's own
-rank fusion, not something we faked in Python.
+Vector search finds it by meaning instead. Atlas fuses both with rank fusion, and the
+badge confirms that ran natively, inside the database.
 
 ## 5. Ask — 1:20
 
-Same hybrid search, now as retrieval for Gemini.
+The same hybrid search, now as retrieval for Gemini.
 
-Every answer cites the path and line, from code it actually read. Underneath, you can
-see the retrieval — which tools ran, and which engine answered.
+Five read-only tools — search, source, symbols, the graph. It cannot patch or verify
+from here.
 
-If it finds nothing, it says so, rather than inventing.
+Every answer cites path and line from code it actually read. Find nothing, and it says
+so rather than inventing.
 
 ---
 
 ## 6. Docs and dependencies — 1:40
 
-Documentation, generated for the legacy and the migrated code, side by side.
+Documentation generated for the legacy and the migrated code, side by side.
 
-And the dependency changes the migration introduced — including packages with known
+And every dependency the migration changed — including the ones carrying known
 vulnerabilities.
 
 ## 7. Run — 1:52
 
 This has been running since I approved it.
 
-Every model turn, every tool call, every verdict — journalled in Atlas as it happens.
+Every model turn, every tool call, every gate result lands in an append-only journal in
+Atlas as it happens.
 
-A patch is only a proposal, until the checks pass.
+A patch stays a proposal until the gates pass.
 
 ---
 
@@ -79,17 +83,17 @@ A patch is only a proposal, until the checks pass.
 
 Here is the whole point.
 
-The visible tests pass. A held-out case the model has never seen does not — and that is
-what blocks it.
+Twenty-four recorded cases. Twelve the model can see; twelve it never will.
 
-The agent gets the counterexample, but never the hidden inputs. Then it tries again.
+The visible twelve pass. A held-out case fails — and that is what blocks it. The agent
+gets the counterexample, never the hidden input. Then it tries again.
 
 ## 9. Report — 2:29
 
-The verdict. What changed. And the honest caveat: this is agreement on the cases it
-tested, never proof of equivalence.
+The verdict, the diff, and the caveat: agreement on the cases it tested, never proof of
+equivalence.
 
-And the migrated project downloads here.
+The migrated project downloads here — code, report and evidence.
 
 ---
 
@@ -97,7 +101,7 @@ And the migrated project downloads here.
 
 Nothing you saw was mocked. Real containers, real cases.
 
-Axolotl never claims your code is equivalent — it claims agreement on what it tested,
-and shows you the evidence.
+Axolotl never claims your code is equivalent. It claims agreement on what it tested —
+and hands you every case, gate and counterexample behind that claim.
 
 That's trusting an AI, versus checking it.
