@@ -1824,6 +1824,7 @@ null. Spread is a descriptive heuristic, not proof of a speed improvement.
 See `docs/runtime-timings.md` for method, costs and limits. Added 22 offline tests
 and extended the existing real-container cross-interpreter check.
 
+
 ---
 
 ## Dev 1: Gemini rate limits are waited out, not lost (#47)
@@ -1849,4 +1850,19 @@ the journal; this half stops them happening.
   wired up.
 
 732 offline backend tests (8 new), 22 container tests, ruff clean. No live Gemini calls.
+
+## 24 Oct 2026 — Dev 4: spoken practice and automated demo readiness
+
+Updated the presentation/demo kit for merged #23 and target enablement PR #76.
+Added `demo/check_readiness.py`: a GET-only checker for services, trusted chess,
+indexing, target availability, and consistent completed run/plan/report/patch
+metadata. It returns nonzero for missing or failed checks, prints no server error
+bodies and leaves runtime-image inspection and human rehearsals explicit.
+
+Added `demo/make_practice_audio.ps1` and generated a synthetic Hazel Desktop practice
+track, measured at 84.63 seconds from WAV frames. This is not Will's voice or a
+human rehearsal. The checker correctly failed on the local machine because the
+API is not running and no demo repository/run IDs were supplied. Local evidence
+and audio are under the ignored `.axolotl_workspaces/demo-preparation/` directory.
+Real recordings, human rehearsals, factual sign-off and uploads remain pending.
 
