@@ -71,7 +71,7 @@ export interface RepositoryRecord {
   repository_id: string;
   name: string;
   snapshot_hash: string;
-  origin: 'demo_fixture' | 'zip_upload';
+  origin: 'demo_fixture' | 'zip_upload' | 'folder_upload';
   executable: boolean;
   demo_fixture_id: string | null;
   file_count: number;

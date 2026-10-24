@@ -5,6 +5,7 @@
  * TanStack Query see a real failure rather than a shape they have to sniff.
  */
 
+import type { FolderFile } from '../lib/folder';
 import type {
   ApiErrorBody,
   DemoFixture,
@@ -93,11 +94,14 @@ export function listDemoFixtures(): Promise<DemoFixture[]> {
   return apiFetch<DemoFixture[]>('/demo-fixtures');
 }
 
-/** POST /api/v1/repositories/import - a fixture as JSON, a ZIP as multipart. No name: the API uses the fixture or file name. */
-export function importRepository(source: File | { demo_fixture_id: string }, name?: string): Promise<RepositoryRecord> {
-  if (source instanceof File) {
+/** POST /api/v1/repositories/import - a fixture as JSON, a folder as multipart `files` with one `paths` entry each, in order. */
+export function importRepository(source: { files: FolderFile[] } | { demo_fixture_id: string }, name?: string): Promise<RepositoryRecord> {
+  if ('files' in source) {
     const body = new FormData();
-    body.append('file', source);
+    for (const { path, file } of source.files) {
+      body.append('files', file);
+      body.append('paths', path);
+    }
     if (name) body.append('name', name);
     return apiFetch<RepositoryRecord>('/repositories/import', { method: 'POST', body });
   }

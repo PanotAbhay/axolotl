@@ -6,21 +6,28 @@ import { useNavigate } from 'react-router-dom';
 import { importRepository, listDemoFixtures } from '@/api/client';
 import { Choice } from '@/components/Choice';
 import { Button } from '@/components/ui/button';
+import { readFolder } from '@/lib/folder';
 
-const ZIP = 'zip';
+const FOLDER = 'folder';
+const size = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 
-/** 01 New migration: import the demo fixture or a ZIP. Errors are the API's own, on the choice they're about. */
+/** 01 New migration: import the demo fixture or a folder. Errors are the API's own, on the choice they're about. */
 export default function NewMigration() {
   const navigate = useNavigate();
   const fixtures = useQuery({ queryKey: ['demo-fixtures'], queryFn: listDemoFixtures });
   const [picked, setPicked] = useState<string>();
-  const [file, setFile] = useState<File | null>(null);
+  const [folder, setFolder] = useState<ReturnType<typeof readFolder>>();
   const [name, setName] = useState('');
-  const source = picked ?? fixtures.data?.[0]?.demo_fixture_id ?? ZIP;
+  const source = picked ?? fixtures.data?.[0]?.demo_fixture_id ?? FOLDER;
   const fixture = fixtures.data?.find((f) => f.demo_fixture_id === source);
 
   const run = useMutation({
-    mutationFn: () => importRepository(source === ZIP ? file! : { demo_fixture_id: source }, name.trim() || undefined),
+    mutationFn: async () => {
+      if (source !== FOLDER) return importRepository({ demo_fixture_id: source }, name.trim() || undefined);
+      if (!folder?.files.length) throw new Error('Nothing in this folder can be imported. Caches, build output, binaries and secrets are skipped.');
+      // Without a name the API calls every folder "uploaded-folder".
+      return importRepository({ files: folder.files }, name.trim() || folder.name);
+    },
     onSuccess: (record) => navigate(`/repos/${encodeURIComponent(record.repository_id)}`),
   });
   const pick = (value: string) => {
@@ -68,23 +75,31 @@ export default function NewMigration() {
               {f.description} Trusted, so it can run in the sandbox.
             </Choice>
           ))}
-          <Choice name="source" value={ZIP} checked={source === ZIP} onPick={pick} error={errorOn(ZIP)} title="Upload a ZIP">
-            Up to 10 MB and 500 files. Static analysis only, so it can’t be migrated.
+          <Choice name="source" value={FOLDER} checked={source === FOLDER} onPick={pick} error={errorOn(FOLDER)} title="Upload a folder">
+            Pick the project’s top folder. Up to 500 files and 50 MB. Static analysis only, so it can’t be migrated.
           </Choice>
-          {source === ZIP && (
-            <label className="flex flex-col gap-2 pt-2">
-              <span className="text-sm font-medium text-muted-foreground">Archive</span>
-              <input
-                type="file"
-                accept=".zip,application/zip"
-                required
-                onChange={(event) => {
-                  setFile(event.target.files?.[0] ?? null);
-                  run.reset();
-                }}
-                className="text-sm file:mr-3 file:h-8 file:rounded-md file:border file:border-input file:bg-card file:px-3 file:font-medium file:text-foreground hover:file:bg-muted"
-              />
-            </label>
+          {source === FOLDER && (
+            <div className="flex flex-col gap-2 pt-2">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-muted-foreground">Folder</span>
+                <input
+                  type="file"
+                  // Chrome's folder picker. React has no prop for it, so it goes through as a plain attribute.
+                  {...{ webkitdirectory: '' }}
+                  required
+                  onChange={(event) => {
+                    setFolder(event.target.files?.length ? readFolder(event.target.files) : undefined);
+                    run.reset();
+                  }}
+                  className="text-sm file:mr-3 file:h-8 file:rounded-md file:border file:border-input file:bg-card file:px-3 file:font-medium file:text-foreground hover:file:bg-muted"
+                />
+              </label>
+              <p role="status" className="text-sm text-muted-foreground">
+                {folder &&
+                  // Chrome's own label counts every file picked, so this accounts for the difference.
+                  `Uploading ${folder.files.length} of ${folder.files.length + folder.skipped} files, ${size(folder.bytes)}.${folder.skipped ? ` Skipped ${folder.skipped}: caches, build output, binaries and secrets such as .env.` : ''}`}
+              </p>
+            </div>
           )}
         </fieldset>
 
@@ -93,7 +108,7 @@ export default function NewMigration() {
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder={source === ZIP ? (file?.name.replace(/\.zip$/i, '') ?? 'Name of the ZIP file') : fixture?.name}
+            placeholder={source === FOLDER ? folder?.name || 'Name of the folder' : fixture?.name}
             disabled={run.isPending}
             className="h-8 w-full max-w-80 rounded-sm border border-input bg-card px-2 font-mono text-sm placeholder:text-muted-foreground"
           />
@@ -105,7 +120,7 @@ export default function NewMigration() {
           </Button>
           {run.isPending && (
             <span role="status" className="text-sm text-muted-foreground">
-              Mapping modules and imports. With search indexing on, this can take a minute.
+              Mapping modules and imports, then indexing them for search. A larger project can take a few minutes.
             </span>
           )}
         </div>
