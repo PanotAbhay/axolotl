@@ -299,6 +299,28 @@ export interface RunSecurity {
   warnings: string[];
 }
 
+/** GET /repositories/{id}/security - the legacy tree only, before any run. */
+export interface RepositorySecurity {
+  repository_id: string;
+  legacy: SecurityTree;
+  disclaimer: string;
+}
+
+/** GET /repositories/{id}/symbols/{symbol_id} */
+export interface SymbolDetail extends SymbolRecord {
+  /** untrusted data - never render as HTML */
+  source: string;
+  warnings: string[];
+}
+
+/** POST /repositories/{id}/index - answers once the re-index has finished. */
+export interface IndexResult {
+  chunks: number;
+  described: number;
+  embedded: number;
+  warnings: string[];
+}
+
 export interface AskHistoryItem {
   role: 'user' | 'assistant';
   content: string;
@@ -675,6 +697,56 @@ export interface Artefact {
   sha256: string;
   /** Rooted at the API's origin: /api/v1/artefacts/{id}/download */
   download_url: string;
+}
+
+// ---------- GET /runs/{run_id}/summary (#35) ----------
+export interface SummaryTests {
+  passed: number;
+  failed: number;
+  inconclusive: number;
+  gates: Record<string, string>;
+}
+
+export interface SummaryUnit {
+  unit_id: string;
+  paths: string[];
+  status: UnitStatus;
+  attempts: number;
+  accepted_revision: string | null;
+  tests: SummaryTests;
+  counterexamples: { found: number; resolved: number };
+  lines: { added: number; removed: number } | null;
+  /** Argon's own description of its patch - model-written, not a verified claim */
+  argon_summary: { text: string; basis: 'model_written'; accepted: boolean } | null;
+}
+
+/** One overview of what a run changed. 404 REPORT_NOT_READY until the report exists. */
+export interface MigrationSummary {
+  run_id: string;
+  repository_id: string;
+  verdict: RunReport['verdict'];
+  revision: string | null;
+  units: SummaryUnit[];
+  totals: {
+    units: number;
+    verified: number;
+    blocked: number;
+    skipped: number;
+    files_changed: number;
+    lines_added: number | null;
+    lines_removed: number | null;
+    tests_passed: number;
+    tests_failed: number;
+    tests_inconclusive: number;
+    counterexamples_found: number;
+    counterexamples_resolved: number;
+    final_integration: SummaryTests | null;
+  };
+  python: { before: string | null; after: string | null } | null;
+  caveats: string[];
+  limitations: string[];
+  warnings: string[];
+  markdown: string;
 }
 
 // ---------- GET /runs/{run_id}/units/{unit_id} ----------

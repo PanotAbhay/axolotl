@@ -12,6 +12,7 @@ import { narrativeBlocks } from '@/lib/narrative';
 import { CLOSING_WAIT_MS, isLive, POLL_MS, useRun } from '@/lib/run';
 import { RUN_STATE, TONE_BORDER, TONE_TEXT, TONE_TINT } from '@/lib/status';
 import { changes as diffChanges } from '@/lib/diff';
+import { scopedSearch } from '@/lib/utils';
 import { Field } from '@/screens/Overview';
 import type { MigrationPlan, RunEvent, RunReport, RunSummary, RunSecurity, SecurityPackages, SecurityTree } from '@/types/contracts';
 
@@ -245,11 +246,7 @@ function Report({ report, plan, run, repoId, search }: { report: RunReport; plan
     const n = unitDiff(unitId).map((f) => diffChanges(f.unified_diff)).reduce((t, c) => ({ added: t.added + c.added, removed: t.removed + c.removed }), { added: 0, removed: 0 });
     return `+${n.added} / −${n.removed}`;
   };
-  const withParam = (key: string, value: string) => {
-    const next = new URLSearchParams(search);
-    next.set(key, value);
-    return `?${next}`;
-  };
+  const withParam = (key: string, value: string) => scopedSearch(new URLSearchParams(search), { [key]: value });
   const repoPath = `/repos/${encodeURIComponent(repoId)}`;
   const python = deps.data?.python;
 
@@ -341,6 +338,9 @@ function Report({ report, plan, run, repoId, search }: { report: RunReport; plan
                             Docs
                           </Link>
                         )}
+                        <Link to={{ pathname: `${repoPath}/run/${encodeURIComponent(u.unit_id)}`, search }} className="ml-3 underline underline-offset-4">
+                          Verification
+                        </Link>
                       </td>
                     </tr>
                     {summary && (
@@ -404,7 +404,7 @@ export default function ReportScreen() {
   const [params] = useSearchParams();
   const navSlot = useOutletContext<HTMLElement | null>();
   const runId = params.get('run');
-  const search = params.size ? `?${params}` : '';
+  const search = scopedSearch(params);
   const run = useRun(runId);
   // The worker writes the report about 20 s after the run ends. Until then the API answers 404.
   // Timed by the fetch, not the render, so the last 404 both stops the polling and says so.

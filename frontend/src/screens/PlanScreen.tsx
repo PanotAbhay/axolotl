@@ -9,6 +9,7 @@ import { Choice } from '@/components/Choice';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { TONE_TEXT, TONE_TINT, type Tone } from '@/lib/status';
 import { matchingTarget } from '@/lib/targets';
+import { scopedSearch } from '@/lib/utils';
 import type { MigrationPlan, PlanStatus } from '@/types/contracts';
 
 const PLAN_STATUS: Record<PlanStatus, [Icon, string, Tone]> = {
@@ -55,7 +56,7 @@ function Plan({ plan, runLink, onStart, starting, startError }: {
 }) {
   const qc = useQueryClient();
   const approve = useMutation({
-    mutationFn: () => approvePlan(plan.plan_id),
+    mutationFn: () => approvePlan(plan.plan_id, true),
     onSuccess: (p) => qc.setQueryData(['plan', p.plan_id], p),
   });
   const [StatusIcon, status, tone] = PLAN_STATUS[plan.status];
@@ -241,7 +242,7 @@ export default function PlanScreen() {
       {plan.data ? (
         <Plan
           plan={plan.data}
-          runLink={params.get('run') ? `/repos/${encodeURIComponent(repoId)}/run?${params}` : undefined}
+          runLink={params.get('run') ? `/repos/${encodeURIComponent(repoId)}/run${scopedSearch(params)}` : undefined}
           onStart={() => start.mutate()}
           starting={start.isPending}
           startError={start.error}
