@@ -99,18 +99,18 @@ That's trusting an AI, versus checking it.
 
 ## Share of the three minutes
 
-| Speaker | Section | Seconds | Words |
-|---|---|---|---|
-| Dev | Intro | 22 | 50 |
-| Caroline | Steps 1–3 | 38 | 74 |
-| Abhay | Steps 4–5 | 40 | 85 |
-| William | Steps 6–7 | 28 | 62 |
-| Dev | Steps 8–9 | 34 | 72 |
-| Moe | Outro | 18 | 42 |
+| Speaker | Section | Seconds | Words | Pace |
+|---|---|---|---|---|
+| Dev | Intro | 22 | 50 | 136 |
+| Caroline | Steps 1–3 | 38 | 77 | 122 |
+| Abhay | Steps 4–5 | 40 | 87 | 130 |
+| William | Steps 6–7 | 28 | 62 | 133 |
+| Dev | Steps 8–9 | 34 | 71 | 125 |
+| Moe | Outro | 18 | 42 | 140 |
 
 Dev has 56 seconds across two turns; William has the shortest run at 28. Abhay carries
 both bounty moments, search and the Ask pane, in one 40-second block — the one worth
 rehearsing twice.
 
-Caroline's block is the slowest-paced of the six, at 117 words a minute, because it
-ends on two clicks and the start of the run. That slack is deliberate; do not fill it.
+Caroline's block is the slowest of the six, and it ends on two clicks and the start of
+the run. That slack is deliberate; do not fill it.
