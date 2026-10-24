@@ -39,6 +39,7 @@ keys under a second name.
 | `edges` | Dev 3 | `edge_source` | `repository_id, source` | |
 | | | `edge_target` | `repository_id, target` | |
 | `code_chunks` | Dev 3 | `chunk_unique` | `repository_id, chunk_id` | yes |
+| `search_index_status` | Dev 3 | `index_status_repository_unique` | `repository_id` | yes |
 | `migration_plans` | Dev 2 | `plan_id_unique` | `plan_id` | yes |
 | | | `plan_repository` | `repository_id` | |
 | `migration_runs` | Dev 2 | `run_id_unique` | `run_id` | yes |
@@ -56,6 +57,10 @@ keys under a second name.
 
 `counters` needs no index of its own: §9 lists `_id`, which MongoDB creates on every
 collection automatically.
+
+`search_index_status` is not in §9 yet: it holds each repository's background search
+indexing progress (#28, below). It is Dev 3-only and additive; the §9 row has been
+proposed to Dev 2.
 
 Two more collections exist on the cluster but are not in §9, so `ensure_indexes()`
 leaves them to their owners: `baseline_outcomes` (Dev 4, index `baseline_run_case`) and
@@ -286,16 +291,65 @@ curl -s localhost:8000/api/v1/system/status | python -m json.tool
 curl -s "localhost:8000/api/v1/repositories/$REPO/search?q=finalise_amount&mode=keyword"
 curl -s "localhost:8000/api/v1/repositories/$REPO/search?q=where+is+rounding+done&mode=hybrid"
 
+# background indexing progress: indexing | ready | failed, embedded of total
+curl -s "localhost:8000/api/v1/repositories/$REPO/index"
+
 # re-chunk, re-describe and re-embed from the stored snapshot
 curl -s -X POST "localhost:8000/api/v1/repositories/$REPO/index"
 ```
 
+### Import responds first, indexing follows (#28)
+
+Descriptions and embeddings are two Gemini calls per chunk, and the import used to wait
+for all of them: about 40 s for `legacy_orders` (40 chunks) and over 2 minutes for chess
+(122 chunks). Now the import stores the repository, graph and chunks, then responds;
+keyword search works at once. Descriptions and embeddings run in the background, in
+batches of 20, each batch written onto the stored chunks in place (never deleted and
+re-inserted, so keyword search keeps finding them).
+
+Timed on 24 Oct with Atlas in memory and Gemini replaced by a stub calibrated to the real
+latency (4.5 s per description, 0.4 s per embedding, five at a time):
+
+| Import | Responds, before | Responds, after | Indexing done, after |
+|---|---|---|---|
+| `legacy_orders`, 40 chunks | 39.3 s | 0.01 s | 39.3 s |
+| chess folder, 122 chunks | 122.7 s | 0.04 s | 122.7 s |
+
+Real Atlas adds its writes and the few seconds Atlas Search takes to see new chunks,
+before and after alike. The Gemini calls are the same in number; only when they happen
+changed.
+
+Progress lives in `search_index_status`, one document per repository:
+
+| `state` | Meaning | Vector and hybrid search |
+|---|---|---|
+| `indexing` | `embedded` of `total` chunks done so far | 503 `SEARCH_INDEX_NOT_READY`, with the progress |
+| `ready` | finished | normal |
+| `failed` | stopped; `reason` says why | 503 `SEARCH_INDEX_NOT_READY`, with the reason |
+| no document | imported before #28, or with `INDEX_ON_IMPORT` off | as before |
+
+Keyword search is never held up by indexing. `GET /repositories/{id}/index` returns the
+document. `POST /repositories/{id}/index` re-runs indexing, and answers 409
+`INDEXING_IN_PROGRESS` while it is already running, so the quota is never spent twice
+on the same chunks.
+
+- **Restarts.** Indexing lives in the server process. Each document records the host and
+  process that own it; a reader on the same host that finds a different process (or
+  this one with nothing running) marks it `failed`, and `POST .../index` runs it again.
+  A document from another machine is left alone, since a teammate's import on the
+  shared cluster may be indexing right now, and only the importing machine has the
+  snapshot.
+- **A spent quota stops the job.** A batch with no descriptions stops the descriptions;
+  a batch with no embeddings stops the job. Without this, every remaining chunk would
+  still send its own failing requests.
+
 `POST /repositories/{repo_id}/index` is for when `INDEX_ON_IMPORT` was off, when a
-Gemini key arrives after an import, or when the embedding model or dimension count
+Gemini key arrives after an import, when background indexing failed, or when the embedding model or dimension count
 changes. It reads sources from the immutable snapshot, so it describes exactly the
 code the symbols were extracted from.
 
-`INDEX_ON_IMPORT=false` skips descriptions and embeddings at import. Chunks are still
+`INDEX_ON_IMPORT=false` skips descriptions and embeddings at import, background ones
+included. Chunks are still
 built and stored, so keyword search works immediately — with no API key at all. The
 test suite sets it off: enrichment is two model calls per chunk, and the import tests
 import the fixture eleven times.
@@ -388,41 +442,99 @@ curl -s localhost:8000/api/v1/repositories           # 503 DATABASE_UNAVAILABLE
   repository's snapshot is not on this machine. Re-import the repository here to
   inspect its code."* (`app/graph/__init__.py`, live-tested in `test_graph_live.py`).
 
+## Quota budget for demo day
+
+The free tier allows **1000 `embed_content` requests a day** per model. It ran out on
+23 Oct after about a dozen imports; the 429 said *"retry in 12h14m51s"*, so it resets
+roughly a day after it is spent, not at midnight. Descriptions use `generate_content`
+on `GEMINI_MODEL`, **the same model as Dev 1's agent**, so every description also
+competes with the migration run.
+
+### What each action costs
+
+| Action | `embed_content` | `generate_content` |
+|---|---|---|
+| Import `legacy_orders`, first time | 40 | 40 |
+| Import chess, first time | 122 | 122 |
+| Import identical code again, same database and models | **0** | **0** |
+| `POST /repositories/{id}/index` | 1 per chunk | 1 per chunk |
+| Keyword search | 0 | 0 |
+| Vector or hybrid search, new query text | 1 | 0 |
+| The same query again, same server process | 0 | 0 |
+| Restarting the backend | 0 | 0 |
+| `uv run pytest -m "not live"` | 0 | 0 |
+| `uv run pytest -m live tests/integration/test_search_live.py`, cache empty | 44 | 40 |
+| The same, cache primed | 0 | 0 |
+
+How the zeros are kept (#11):
+
+- **Re-imports reuse stored answers.** A chunk id is derived from the snapshot hash, so
+  the same id means byte-identical code. The background indexer copies the description
+  and embedding of any stored chunk with that id, but only when `enriched_with` (the
+  description model, embedding model and dimensions) also matches. Chunks indexed
+  before this landed have no `enriched_with`, so the **first** import of each project
+  after it pays once.
+- **A repeated query reuses its vector.** Vectors are kept in memory per server process,
+  up to 256 queries. A restart clears them.
+- **A spent daily quota stops the work.** It is not retried (it used to be retried 4
+  times, so 160 failing requests for a 40-chunk import), and the batch stops at the
+  first refusal. A per-minute limit is still retried.
+- **Restarts resume nothing.** Indexing interrupted by a restart is marked `failed` and
+  waits for someone to press re-index.
+- **Re-index is deliberate.** `POST .../index` re-describes and re-embeds everything,
+  because it is what you use after changing models. It answers 409 while indexing runs.
+
+### Don't, before recording
+
+1. **Don't run a plain `uv run pytest`.** With `.env` filled it runs all 56 live tests,
+   including real Gemini calls in Dev 1's and Dev 2's. Use `uv run pytest -m "not live"`.
+2. **Don't import into a new database, or change `GEMINI_MODEL`,
+   `GEMINI_EMBEDDING_MODEL` or `EMBEDDING_DIMENSIONS`.** Reuse matches on both, so either
+   makes the next chess import pay 244 calls again.
+3. **Don't press re-index** on chess or `legacy_orders` unless indexing failed.
+4. **Don't run `--cache-clear` or delete `backend/.pytest_cache`.** That throws away the
+   recorded answers.
+5. **Rehearse with the scripted queries.** Each new query wording costs one embedding;
+   keyword search costs nothing.
+6. **Import chess and `legacy_orders` before judging,** check `GET
+   /repositories/{id}/index` says `ready`, and don't make the first import of the day
+   the one just before recording.
+
+Open, for the team: is a paid key or a second key available as a backup? Not decided.
+
+### Prime the replay cache: one run, on the machine that runs the tests
+
+`tests/integration/model_replay.py` records each real Gemini answer the first time it is
+asked and replays it afterwards. It records only successes, and the cache lives in that
+checkout's `backend/.pytest_cache`, so prime it on the machine that will run the tests.
+
+1. Check the key has quota in the AI Studio usage page. That page costs no request.
+2. Check `.env` has `MONGODB_URI`, `GEMINI_API_KEY`, `GEMINI_EMBEDDING_MODEL` and
+   `EMBEDDING_DIMENSIONS`. The test uses a throwaway `axolotl_test_*` database and drops
+   it afterwards.
+3. Run exactly this file, never the whole live suite:
+
+   ```bash
+   cd backend
+   uv run pytest -m live tests/integration/test_search_live.py -v -s
+   ```
+
+   **Cost: 84 requests.** That is 44 `embed_content` (40 chunks + 4 distinct query
+   texts; the 6 searches repeat two of them, and repeats replay) and 40
+   `generate_content` (one description per chunk). The last line
+   prints `Gemini calls this run: {...}`.
+4. Run the same command again. It should print `embeddings_called: 0` and
+   `descriptions_called: 0`, and the six embedding-dependent tests should pass rather
+   than skip.
+
+If the quota runs out partway, what succeeded stays recorded, and the next run asks only
+for the rest.
+
 ## TODO (agreed, not started)
 
-- **Prime the replay cache with one live run, and not on demo morning.** Nobody has
-  done this yet and it is the quickest of these to get wrong.
-
-  `tests/integration/model_replay.py` records each real Gemini answer the first time it
-  is asked and replays it afterwards, which is the right answer to the quota. But it
-  records on *success*, and the free-tier embedding quota was exhausted on 23 Oct
-  before any call succeeded, so **the cache is currently empty** - checked: zero
-  recorded answers under `.pytest_cache/axolotl/gemini`. Until one run completes with
-  quota available, every run still makes real calls and the six embedding-dependent
-  tests in `test_search_live.py` skip.
-
-  ```bash
-  cd backend && uv run pytest -q -m live tests/integration/test_search_live.py
-  ```
-
-  The numbers that make this matter:
-
-  | | |
-  |---|---|
-  | free-tier limit | **1000** `embed_content` requests per day, per model |
-  | one import | ~40 (one per chunk) |
-  | one vector or hybrid search | 1 (the query) |
-  | one full live run, cold | ~48 |
-
-  The 23 Oct exhaustion came from roughly a dozen imports in an evening, not from
-  anything unusual. Atlas, the indexes, the stored vectors and `$rankFusion` all still
-  run for real on a replayed run; only the repeat round trip to Gemini is skipped.
-  `--cache-clear` forces real calls again when you want to check against the live model.
-
-  The reset is ~24 hours from exhaustion: the 429 on 23 Oct at about 18:50 said *"retry
-  in 12h14m51s"*, so roughly 07:05 on 24 Oct for that key. Prime it early, and do not
-  let the first run of the day be the one five minutes before recording the video -
-  one import is 40 of the 1000.
+- **Prime the replay cache with one live run.** Steps and cost are in
+  [Quota budget for demo day](#quota-budget-for-demo-day) below. Still not done: on
+  24 Oct the cache held zero recorded answers.
 
 - ~~**Isolate `tests/integration/test_search_live.py`.**~~ Done (Dev 2). It now runs
   in a throwaway `axolotl_test_<random>` database, dropped after asserting the prefix,
