@@ -9,6 +9,7 @@ import { Choice } from '@/components/Choice';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { TONE_TEXT, TONE_TINT, type Tone } from '@/lib/status';
 import { matchingTarget } from '@/lib/targets';
+import { scopedSearch } from '@/lib/utils';
 import type { MigrationPlan, PlanStatus } from '@/types/contracts';
 
 const PLAN_STATUS: Record<PlanStatus, [Icon, string, Tone]> = {
@@ -241,7 +242,7 @@ export default function PlanScreen() {
       {plan.data ? (
         <Plan
           plan={plan.data}
-          runLink={params.get('run') ? `/repos/${encodeURIComponent(repoId)}/run?${params}` : undefined}
+          runLink={params.get('run') ? `/repos/${encodeURIComponent(repoId)}/run${scopedSearch(params)}` : undefined}
           onStart={() => start.mutate()}
           starting={start.isPending}
           startError={start.error}

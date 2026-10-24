@@ -1,10 +1,11 @@
 import { ArrowsLeftRightIcon, XCircleIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams, type To } from 'react-router-dom';
 
 import { ApiError, getDependencyChanges } from '@/api/client';
 import { buttonVariants } from '@/components/ui/button';
+import { scopedSearch } from '@/lib/utils';
 import type { DependencyChanges, DependencyModuleChange } from '@/types/contracts';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -20,7 +21,7 @@ function Heuristic({ basis }: { basis: string }) {
   return basis === 'name_match' ? <span className="ml-2 rounded-sm border border-warning px-1.5 py-0.5 text-sm text-warning">Heuristic</span> : null;
 }
 
-function Module({ change }: { change: DependencyModuleChange }) {
+function Module({ change, graph }: { change: DependencyModuleChange; graph: (moduleId: string) => To }) {
   const items = [
     ...change.imports_added.map((i) => ({ label: `Import added: ${i.name}`, basis: i.basis })),
     ...change.imports_removed.map((i) => ({ label: `Import removed: ${i.name}`, basis: i.basis })),
@@ -30,7 +31,10 @@ function Module({ change }: { change: DependencyModuleChange }) {
   ];
   return (
     <section className="flex flex-col gap-2 border-b py-3 last:border-0">
-      <h3 className="font-mono text-sm font-medium">{change.path}</h3>
+      <h3 className="font-mono text-sm font-medium">
+        {/* An added module is only in the revision, so the legacy graph has no node for it. */}
+        {change.status === 'added' ? change.path : <Link to={graph(change.module_id)} className="underline-offset-4 hover:underline">{change.path}</Link>}
+      </h3>
       {items.length ? (
         <ul className="flex flex-col gap-1 text-sm">
           {items.map((item, index) => (
@@ -44,7 +48,7 @@ function Module({ change }: { change: DependencyModuleChange }) {
   );
 }
 
-function Changes({ changes }: { changes: DependencyChanges }) {
+function Changes({ changes, graph }: { changes: DependencyChanges; graph: (moduleId: string) => To }) {
   if (!changes.revision) {
     return <p className="text-sm text-muted-foreground">No revision was accepted in this run, so dependencies can’t be compared.</p>;
   }
@@ -70,7 +74,7 @@ function Changes({ changes }: { changes: DependencyChanges }) {
         {changes.packages.note && <p className="text-sm text-muted-foreground">{changes.packages.note}</p>}
       </Section>
       <Section title="Module imports and Python 2 replacements">
-        {changes.modules.length ? changes.modules.map((change) => <Module key={change.module_id} change={change} />) : <p className="text-sm text-muted-foreground">No per-module import changes.</p>}
+        {changes.modules.length ? changes.modules.map((change) => <Module key={change.module_id} change={change} graph={graph} />) : <p className="text-sm text-muted-foreground">No per-module import changes.</p>}
       </Section>
       <Section title="Dependency edges">
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -102,7 +106,7 @@ export default function DependenciesScreen() {
     queryFn: () => getDependencyChanges(runId!),
     enabled: Boolean(runId),
   });
-  const search = params.size ? `?${params}` : '';
+  const search = scopedSearch(params);
   if (!runId) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
@@ -128,7 +132,9 @@ export default function DependenciesScreen() {
               <p className="text-sm text-muted-foreground">{query.error instanceof ApiError ? query.error.message : String(query.error)}</p>
             </div>
           </section>
-        ) : query.data ? <Changes changes={query.data} /> : null}
+        ) : query.data ? (
+          <Changes changes={query.data} graph={(module) => ({ pathname: `/repos/${encodeURIComponent(repoId)}/graph`, search: scopedSearch(params, { module }) })} />
+        ) : null}
     </main>
   );
 }

@@ -8,6 +8,7 @@ import { generateDocs, getRepositoryDocs, getRunDocs } from '@/api/client';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { POLL_MS } from '@/lib/run';
+import { scopedSearch } from '@/lib/utils';
 import { Field } from '@/screens/Overview';
 import type { DocsCallable, DocsChange, DocsFacts, DocsModule, DocsProse, RepositoryDocs, RunDocs } from '@/types/contracts';
 
@@ -87,8 +88,9 @@ function Facts({ facts, paths }: { facts: DocsFacts; paths: Map<string, string> 
   );
 }
 
-function Change({ change, dependencies }: { change: DocsChange; dependencies: string }) {
+function Change({ change, repoPath, search }: { change: DocsChange; repoPath: string; search: string }) {
   const unit = change.unit;
+  const link = 'text-sm underline underline-offset-4';
   return (
     <Block title="Changed in the migration">
       {!unit ? (
@@ -101,6 +103,14 @@ function Change({ change, dependencies }: { change: DocsChange; dependencies: st
             <span className="text-muted-foreground">after {unit.attempts} {unit.attempts === 1 ? 'attempt' : 'attempts'}</span>
           </p>
           {unit.status !== 'passed' && <p className={muted}>Not accepted in this run, so this file is still the legacy code.</p>}
+          <p className="flex flex-wrap gap-x-4 gap-y-1">
+            {unit.status === 'passed' && (
+              <Link to={{ pathname: `${repoPath}/changes`, search: scopedSearch(new URLSearchParams(search), { unit: unit.unit_id }) }} className={link}>
+                Its diff
+              </Link>
+            )}
+            <Link to={{ pathname: `${repoPath}/run/${encodeURIComponent(unit.unit_id)}`, search }} className={link}>Its verification</Link>
+          </p>
           {change.summary && (
             <div className="flex flex-col gap-1 border-l-2 pl-3">
               <p className="text-sm">{change.summary}</p>
@@ -110,7 +120,7 @@ function Change({ change, dependencies }: { change: DocsChange; dependencies: st
         </>
       )}
       {change.dependencies && (
-        <Link to={dependencies} className="text-sm underline underline-offset-4">Its dependency changes</Link>
+        <Link to={{ pathname: `${repoPath}/dependencies`, search }} className={link}>Its dependency changes</Link>
       )}
     </Block>
   );
@@ -168,7 +178,7 @@ function Prose({ prose, repoId }: { prose: DocsProse; repoId: string }) {
 export default function DocsScreen() {
   const { repoId = '' } = useParams();
   const [params] = useSearchParams();
-  const search = params.size ? `?${params}` : '';
+  const search = scopedSearch(params);
   const runId = params.get('run');
   const docs = useQuery<RepositoryDocs | RunDocs>({
     queryKey: ['docs', repoId, runId],
@@ -183,7 +193,7 @@ export default function DocsScreen() {
   const paths = new Map(modules.map((m) => [m.module_id, m.path]));
   const python = d && 'run_id' in d ? d.python : { legacy: d?.python ?? null, migrated: null };
   const run = d && 'run_id' in d ? d : null;
-  const dependencies = `/repos/${encodeURIComponent(repoId)}/dependencies${search}`;
+  const repoPath = `/repos/${encodeURIComponent(repoId)}`;
 
   if (!d || !module) {
     return (
@@ -254,7 +264,7 @@ export default function DocsScreen() {
                 <Side title="Migrated" python={python.migrated}>
                   {module.migrated ? (
                     <>
-                      <Change change={module.migrated.change} dependencies={dependencies} />
+                      <Change change={module.migrated.change} repoPath={repoPath} search={search} />
                       <Facts facts={module.migrated.facts} paths={paths} />
                     </>
                   ) : (

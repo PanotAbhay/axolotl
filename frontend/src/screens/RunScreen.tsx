@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cn } from 'cn';
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useLocation, useOutletContext, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useOutletContext, useParams, useSearchParams } from 'react-router-dom';
 
 import { ApiError, cancelRun, getGraph, getPlan, listRunEvents } from '@/api/client';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
@@ -19,6 +19,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { eventRows, terminalLines, type EventRow, type GateChip } from '@/lib/events';
 import { attemptOf, CLOSING_WAIT_MS, isLive, POLL_MS, useRun } from '@/lib/run';
 import { GATE_STATUS, RUN_STATE, TONE_BORDER, TONE_TEXT, TONE_TINT } from '@/lib/status';
+import { scopedSearch } from '@/lib/utils';
 import { GraphArea } from '@/screens/GraphScreen';
 import { Field } from '@/screens/Overview';
 import type { RunEvent, RunSummary } from '@/types/contracts';
@@ -162,7 +163,7 @@ function Dashboard({ repoId, run }: { repoId: string; run: RunSummary }) {
   const [confirming, setConfirming] = useState(false);
   const [terminal, setTerminal] = useState(false);
   const cancelButton = useRef<HTMLButtonElement>(null);
-  const { search } = useLocation();
+  const search = scopedSearch(useSearchParams()[0]);
   const log = events.data ?? [];
   const last = log.at(-1);
   const { rows, gates, attempts: patched } = eventRows(log, unit);
@@ -185,6 +186,11 @@ function Dashboard({ repoId, run }: { repoId: string; run: RunSummary }) {
           {tests ? `${run.tests_passed} passed, ${run.tests_failed} failed${run.tests_inconclusive ? `, ${run.tests_inconclusive} inconclusive` : ''}` : 'Not run yet'}
         </Field>
         <Field label="Last event">{last ? `${time(last.timestamp)}, event ${last.sequence}` : 'None yet'}</Field>
+        {!live && (
+          <Link to={{ pathname: `/repos/${encodeURIComponent(repoId)}/report`, search }} className={cn(buttonVariants(), 'ml-auto')}>
+            View report
+          </Link>
+        )}
         {live && (
           <div className="ml-auto flex items-center gap-2">
             {confirming && (
@@ -326,7 +332,7 @@ export default function RunScreen() {
   // Before that, only a network failure is a lost connection; an error the API answered shows as it is.
   const lost = run.error instanceof ApiError && (run.error.status === 0 || Boolean(run.data));
 
-  if (!runId) return <Empty repoId={repoId} search={params.size ? `?${params}` : ''} />;
+  if (!runId) return <Empty repoId={repoId} search={scopedSearch(params)} />;
   return (
     <main className="flex flex-1 flex-col">
       {navSlot &&

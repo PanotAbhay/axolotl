@@ -4,11 +4,12 @@ import { cn } from 'cn';
 import { useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
-import { ApiError, askRepository, getGraph, searchRepository } from '@/api/client';
+import { ApiError, askRepository, getGraph, getPlan, searchRepository } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { excerpt, queryWords, splitAtWords } from '@/lib/search';
 import { GraphArea } from '@/screens/GraphScreen';
+import { ModuleInspector } from '@/screens/ModuleInspector';
 import type { AskResponse, GraphPayload, SearchHit, SearchMode } from '@/types/contracts';
 
 const MODES: [SearchMode, string][] = [
@@ -131,7 +132,7 @@ function Answer({ text }: { text: string }) {
   );
 }
 
-function AskPane({ repoId, graph, onSelect }: { repoId: string; graph: UseQueryResult<GraphPayload>; onSelect: (id: string | null) => void }) {
+function AskPane({ repoId, graph, onSelect, hidden }: { repoId: string; graph: UseQueryResult<GraphPayload>; onSelect: (id: string | null) => void; hidden: boolean }) {
   const [draft, setDraft] = useState('');
   const [turns, setTurns] = useState<AskTurn[]>([]);
   const ask = useMutation({
@@ -155,7 +156,7 @@ function AskPane({ repoId, graph, onSelect }: { repoId: string; graph: UseQueryR
   };
 
   return (
-    <aside aria-label="Ask about this repository" className="flex-none border-t bg-card xl:relative xl:w-[380px] xl:border-t-0 xl:border-l">
+    <aside aria-label="Ask about this repository" hidden={hidden} className="flex-none border-t bg-card xl:relative xl:w-[380px] xl:border-t-0 xl:border-l">
       <div className="flex flex-col xl:absolute xl:inset-0">
         <header className="flex flex-col gap-1 border-b p-4">
           <h2 className="font-medium">Ask about this code</h2>
@@ -246,7 +247,10 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<SearchMode>('hybrid');
   const [picked, setPicked] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const graph = useQuery({ queryKey: ['graph', repoId, runId], queryFn: () => getGraph(repoId, runId) });
+  const planId = params.get('plan');
+  const plan = useQuery({ queryKey: ['plan', planId], queryFn: () => getPlan(planId!), enabled: Boolean(planId) });
   const results = useQuery({
     queryKey: ['search', repoId, query, mode],
     queryFn: () => searchRepository(repoId, query, mode),
@@ -336,8 +340,8 @@ export default function SearchScreen() {
           <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
             {!query ? (
               <p className="p-4 text-sm text-muted-foreground">
-                Find code by keyword, by meaning (vector), or both (hybrid), then press Enter. Pick a result to see its module on the
-                graph.
+                Find code by keyword, by meaning (vector), or both (hybrid), then press Enter. Pick a result to open its module beside
+                the graph.
               </p>
             ) : error instanceof ApiError && error.code === 'SEARCH_INDEX_NOT_READY' ? (
               <NotReadyNotice error={error} onKeyword={mode === 'keyword' ? undefined : () => setMode('keyword')} />
@@ -368,7 +372,29 @@ export default function SearchScreen() {
         </div>
       </section>
       <GraphArea graph={graph} selected={module} filter="" onSelect={select} zoomToSelected />
-      <AskPane repoId={repoId} graph={graph} onSelect={select} />
+      {/* An open module takes the Ask pane's place. Ask stays mounted, so its conversation is back when the inspector closes. */}
+      {module && graph.data && (
+        <aside
+          aria-label="Module inspector"
+          className={cn('flex-none border-t bg-card xl:relative xl:border-t-0 xl:border-l', expanded ? 'xl:w-[560px]' : 'xl:w-[380px]')}
+        >
+          <div className="flex flex-col xl:absolute xl:inset-0 xl:overflow-y-auto">
+            <ModuleInspector
+              key={module}
+              repoId={repoId}
+              moduleId={module}
+              graph={graph.data}
+              runId={runId}
+              unit={plan.data?.units.find((u) => u.module_ids.includes(module))}
+              expanded={expanded}
+              onExpand={setExpanded}
+              onClose={() => select(null)}
+              onSelect={select}
+            />
+          </div>
+        </aside>
+      )}
+      <AskPane repoId={repoId} graph={graph} onSelect={select} hidden={Boolean(module && graph.data)} />
     </main>
   );
 }

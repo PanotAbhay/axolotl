@@ -7,14 +7,34 @@ import { Link, useOutletContext, useParams, useSearchParams } from 'react-router
 
 import { getPlan, getRunDiff } from '@/api/client';
 import { StatusBadge } from '@/components/StatusBadge';
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { changes } from '@/lib/diff';
 import { isLive, useRun } from '@/lib/run';
+import { scopedSearch } from '@/lib/utils';
 import { Field } from '@/screens/Overview';
 
 const DiffView = lazy(() => import('@/components/SourceView').then((m) => ({ default: m.DiffView })));
 const VIEWS = [[false, 'Inline'], [true, 'Side by side']] as const;
 const muted = 'text-sm text-muted-foreground';
+
+/** Inline or side by side, for a DiffView. */
+export function DiffViewToggle({ sideBySide, onChange }: { sideBySide: boolean; onChange: (sideBySide: boolean) => void }) {
+  return (
+    <div role="group" aria-label="Diff view" className="flex h-8 flex-none overflow-hidden rounded-md border border-input">
+      {VIEWS.map(([value, label]) => (
+        <button
+          key={label}
+          type="button"
+          aria-pressed={value === sideBySide}
+          onClick={() => onChange(value)}
+          className="border-input px-3 text-sm font-medium text-muted-foreground transition-colors not-first:border-l focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-current aria-pressed:bg-foreground aria-pressed:text-card"
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Every file the run changed, like `git diff` (#36): baseline against the last accepted revision, the one the
@@ -22,25 +42,36 @@ const muted = 'text-sm text-muted-foreground';
  */
 export default function ChangesScreen() {
   const { repoId = '' } = useParams();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const navSlot = useOutletContext<HTMLElement | null>();
-  const search = params.size ? `?${params}` : '';
+  const search = scopedSearch(params);
   const runId = params.get('run');
   const run = useRun(runId);
   const plan = useQuery({ queryKey: ['plan', run.data?.plan_id], queryFn: () => getPlan(run.data!.plan_id), enabled: Boolean(run.data) });
   // Keyed on the verified count, so it loads again as units are accepted mid-run.
   const diff = useQuery({ queryKey: ['run-diff', runId, null, run.data?.units_verified], queryFn: () => getRunDiff(runId!), enabled: Boolean(run.data) });
-  const [unitId, setUnitId] = useState(() => params.get('unit') ?? '');
+  const unitId = params.get('unit') ?? '';
+  const setUnitId = (id: string) =>
+    setParams(
+      (p) => {
+        if (id) p.set('unit', id);
+        else p.delete('unit');
+        return p;
+      },
+      { replace: true },
+    );
   const [picked, setPicked] = useState<string>();
   const [sideBySide, setSideBySide] = useState(false);
 
   const unitOf = (path: string) => plan.data?.units.find((u) => u.file_paths.includes(path));
   const all = (diff.data?.files ?? []).map((f) => ({ ...f, unit: unitOf(f.path), ...changes(f.unified_diff) }));
   const units = [...new Map(all.flatMap((f) => (f.unit ? [[f.unit.unit_id, f.unit]] : []))).values()];
-  // A filter left over from an earlier diff falls back to every file.
-  const filtered = all.filter((f) => f.unit?.unit_id === unitId);
-  const files = filtered.length ? filtered : all;
+  const files = unitId ? all.filter((f) => f.unit?.unit_id === unitId) : all;
   const file = files.find((f) => f.path === picked) ?? files[0];
+  // A unit with no accepted change, from a link or an earlier diff, has no files; the select still names it.
+  const stale = unitId && plan.data && !units.some((u) => u.unit_id === unitId)
+    ? (plan.data.units.find((u) => u.unit_id === unitId)?.file_paths.join(', ') ?? unitId)
+    : null;
   const status = file?.unit && run.data?.units.find((u) => u.unit_id === file.unit!.unit_id)?.status;
   const total = (k: 'added' | 'removed') => all.reduce((n, f) => n + f[k], 0);
 
@@ -67,7 +98,7 @@ export default function ChangesScreen() {
           </span>,
           navSlot,
         )}
-      {note || !file ? (
+      {note ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
           <GitDiffIcon size={24} aria-hidden className="text-muted-foreground" />
           <h2 className="text-xl leading-tight font-semibold">{runId ? 'Changes' : 'No run picked'}</h2>
@@ -104,6 +135,7 @@ export default function ChangesScreen() {
                   className="h-8 rounded-sm border border-input bg-card px-2 font-mono text-sm"
                 >
                   <option value="">All units</option>
+                  {stale && <option value={unitId}>{stale}</option>}
                   {units.map((u) => (
                     <option key={u.unit_id} value={u.unit_id}>
                       {u.file_paths.join(', ')}
@@ -111,19 +143,7 @@ export default function ChangesScreen() {
                   ))}
                 </select>
               </label>
-              <div role="group" aria-label="Diff view" className="flex h-8 flex-none overflow-hidden rounded-md border border-input">
-                {VIEWS.map(([value, label]) => (
-                  <button
-                    key={label}
-                    type="button"
-                    aria-pressed={value === sideBySide}
-                    onClick={() => setSideBySide(value)}
-                    className="border-input px-3 text-sm font-medium text-muted-foreground transition-colors not-first:border-l focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-current aria-pressed:bg-foreground aria-pressed:text-card"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              <DiffViewToggle sideBySide={sideBySide} onChange={setSideBySide} />
             </div>
           </div>
 
@@ -150,6 +170,19 @@ export default function ChangesScreen() {
             </nav>
 
             <section aria-label="Diff" className="flex min-w-0 flex-1 flex-col bg-card">
+              {!file ? (
+                stale ? (
+                  <div className="flex flex-col items-start gap-3 p-4">
+                    <p className={muted}>
+                      No changed files for unit <span className="font-mono">{stale}</span>: no attempt was accepted, so its files keep the legacy code.
+                    </p>
+                    <Button variant="outline" onClick={() => setUnitId('')}>Show all files</Button>
+                  </div>
+                ) : (
+                  <p role="status" className={cn('p-4', muted)}>Loading the plan…</p>
+                )
+              ) : (
+              <>
               <div className="flex h-10 flex-none items-center gap-3 border-b px-4 text-sm whitespace-nowrap">
                 <GitDiffIcon size={20} aria-hidden className="flex-none" />
                 <span className="truncate font-mono font-medium">{file.path}</span>
@@ -173,6 +206,8 @@ export default function ChangesScreen() {
                   </Suspense>
                 </div>
               </div>
+              </>
+              )}
             </section>
           </div>
         </>

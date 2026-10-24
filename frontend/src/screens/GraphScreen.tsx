@@ -404,6 +404,7 @@ export default function GraphScreen() {
               expanded={expanded}
               onExpand={setExpanded}
               onClose={() => select(null)}
+              onSelect={select}
             />
           </div>
         </aside>

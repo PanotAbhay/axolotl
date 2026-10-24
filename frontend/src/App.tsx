@@ -20,6 +20,7 @@ import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { isLive, useRun } from '@/lib/run';
+import { scopedSearch } from '@/lib/utils';
 import NewMigration from '@/screens/NewMigration';
 import Overview from '@/screens/Overview';
 import PlanScreen from '@/screens/PlanScreen';
@@ -127,7 +128,7 @@ const TAB = 'flex items-center px-3 text-sm font-medium border-b-2 border-transp
 function RepoLayout() {
   const { repoId = '' } = useParams();
   const [params] = useSearchParams();
-  const search = params.size ? `?${params}` : '';
+  const search = scopedSearch(params);
   // A screen can put controls at the right of the tab bar (the graph's filter) through this slot.
   const [navSlot, setNavSlot] = useState<HTMLDivElement | null>(null);
   return (
