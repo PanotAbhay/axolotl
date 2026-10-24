@@ -5,8 +5,12 @@ Supersedes the timed table in [demo-script.md](demo-script.md), which predates t
 Search, Ask, Changes, Dependencies and Docs screens. That document's **preflight
 checklist and fallbacks still apply** and are not repeated here.
 
-The spoken words on their own, for rehearsing from, are in
-[demo-transcript.md](demo-transcript.md).
+**The words live in [demo-transcript.md](demo-transcript.md) and only there.** This file
+carries the clicks, the reasoning and the fallbacks; the *Words* column names the
+section to say. Two copies of a script drift, and the first thing to go stale is the
+one nobody rehearses from.
+
+**No personal names in the spoken script.**
 
 ## The idea that makes it fit
 
@@ -27,17 +31,17 @@ and a half between them, and do not rush the second: it carries the whole claim.
 
 ## Walkthrough (0:22–2:42)
 
-| Time | Click / show | Say | Why it earns the time |
+| Time | Click / show | Words | Why it earns the time |
 |---|---|---|---|
-| 0:22–0:35 | **New migration.** Chess is already selected as a built-in fixture. Point at the upload option beside it | "Chess ships with the project, so it runs on any laptop. Anything you upload instead is read, never executed — only an exact content match of a trusted fixture is allowed to run." | **Encode: permissions.** The trust gate is the first thing a judge sees, before anything runs |
-| 0:35–0:48 | **Graph.** Click one module, follow an import edge | "Python's own parser reads the source without importing or running it. These edges are facts from the code, and they decide the migration order." | **Novel.** The dependency graph is not decoration — it controls the order of work |
-| 0:48–1:00 | **Plan.** Scroll the dependency order, then **Approve**, then **Start migration** | "Argon proposed this order; code checks it is dependency-first. Nothing runs until a person approves it. I'm approving it now." | **Encode: human approval.** A real gate, enforced outside the model. **The run starts here and keeps running** |
-| 1:00–1:20 | **Search.** Query `get the final amount` in **keyword**, then switch to **hybrid** | "Keyword search returns the wrong function — 'get' matches `get_order`. Hybrid finds the right one, and the badge says `native_hybrid`, so that is Atlas's own `$rankFusion`, not something we faked in Python." | **MongoDB bounty, the strongest 20 seconds we have.** Atlas Search, Vector Search and native hybrid fusion, with the difference visible on screen |
-| 1:20–1:40 | **Ask pane**, same screen. Ask "where is castling decided?" | "Same hybrid search, now as retrieval for Gemini. Every answer cites `path:line` from code it actually read, and underneath you can see the retrieval — which tools ran, which engine answered. If it finds nothing it says so rather than inventing." | **Both bounties at once.** Gemini tool use over Atlas hybrid search, with the evidence shown, not asserted |
-| 1:40–1:52 | **Docs**, then **Dependencies** | "Documentation generated for the legacy and the migrated code side by side. And the dependency changes the migration introduced — including packages with known vulnerabilities." | Breadth. Two screens, one sentence each; do not linger |
-| 1:52–2:08 | **Run.** Point at the live event journal, tool calls, per-unit status | "This has been running since I approved it. Every model turn, tool call and verdict is journalled in Atlas as it happens. A patch is a proposal until the checks pass." | **DeepMind: an agent that uses tools.** Real tool calls, timestamped, not narrated |
-| 2:08–2:29 | **Click a unit → Verification.** Show visible cases passing, the held-out case failing, the counterexample, then the repair | "Here is the whole point. The visible tests pass. A held-out case the model has never seen does not — and that is what blocks it. The agent gets the counterexample, not the hidden inputs, and tries again." | **The thesis, and the single most important 25 seconds.** This is what "independently verified" means |
-| 2:29–2:42 | **Report.** Verdict, migration summary, security section, the NOT-A-PROOF line, then **Download migrated codebase** | "The verdict, what changed, and the honest caveat: this is agreement on tested cases, never proof of equivalence. And the migrated project downloads here." | **Encode: end-to-end delivery.** It ends in something you can actually take away |
+| 0:22–0:35 | **New migration.** Chess is already selected as a built-in fixture. Point at the upload option beside it | §1 Import | **Encode: permissions.** The trust gate is the first thing a judge sees, before anything runs |
+| 0:35–0:48 | **Graph.** Click one module, follow an import edge | §2 Graph | **Novel.** The dependency graph is not decoration — it controls the order of work |
+| 0:48–1:00 | **Plan.** Scroll the dependency order, then **Approve**, then **Start migration** | §3 Plan and approval | **Encode: human approval**, enforced outside the model. **The run starts here and keeps running** |
+| 1:00–1:20 | **Search.** Query `get the final amount` in **keyword**, then switch to **hybrid** | §4 Search | **MongoDB bounty, the strongest 20 seconds we have.** Atlas Search, Vector Search and native fusion, with the difference visible on screen |
+| 1:20–1:40 | **Ask pane**, same screen. Ask "where is castling decided?" | §5 Ask | **Both bounties at once.** Gemini tool use over Atlas hybrid search, with the evidence shown rather than asserted |
+| 1:40–1:52 | **Docs**, then **Dependencies** | §6 Docs and dependencies | Breadth. Two screens, one sentence each; do not linger |
+| 1:52–2:08 | **Run.** Point at the live event journal, tool calls, per-unit status | §7 Run | **DeepMind: an agent that uses tools.** Real tool calls, timestamped, not narrated |
+| 2:08–2:29 | **Click a unit → Verification.** Show the visible cases passing, the held-out case failing, the counterexample, then the repair | §8 Verification | **The thesis, and the most important 21 seconds.** This is what "independently verified" means |
+| 2:29–2:42 | **Report.** Verdict, migration summary, security section, the NOT-A-PROOF line, then **Download migrated codebase** | §9 Report | **Encode: end-to-end delivery.** It ends in something you can actually take away |
 
 ## Outro (2:42–3:00)
 

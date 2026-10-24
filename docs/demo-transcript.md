@@ -4,6 +4,8 @@ Spoken words only. Clicks, timings, reasoning and fallbacks are in
 [demo-walkthrough.md](demo-walkthrough.md); delivery rules are in its *Delivery*
 section. Section breaks are where the five speakers change over.
 
+**No personal names in the spoken script.** Say "ours", "a teammate", "one of us".
+
 Every section sits between 102 and 140 words a minute. Nothing here needs to be rushed,
 and if a beat feels rushed, the cause is a skipped pause rather than too many words.
 
@@ -14,7 +16,7 @@ and if a beat feels rushed, the cause is a skipped pause rather than too many wo
 Every team has code nobody dares touch. Not because it's bad — because nobody can prove
 a rewrite still behaves the same.
 
-Will's chess game is stuck on Python 2.7. Axolotl migrates it to 3.14, then runs old and
+This chess game is ours, stuck on Python 2.7. Axolotl migrates it to 3.14, then runs old and
 new on the same inputs, in containers, and compares every output.
 
 ---
