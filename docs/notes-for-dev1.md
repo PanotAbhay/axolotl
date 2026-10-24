@@ -59,14 +59,13 @@ What the frontend needs once these are fixed:
 
 | Explorer feature | Now in |
 |---|---|
-| ZIP upload | 01 New migration (`/`), "Upload a ZIP" |
+| ZIP upload | 01 New migration (`/`), "Upload a folder", using your folder import |
 | Declared Python version | 02 Overview, Python version panel |
 | Dependency graph | 03 Graph tab |
 | Module source | 04 Module inspector: select a module on the graph, then expand the panel |
 | "Create upgrade plan" and "Python 3.14 (desired)" | The Plan screen, in Dev 5's next step |
 
-To try chess: run `python demo/package_chess.py` from the repo root, then upload
-`demo/chess-input.zip` on `/`.
+To try chess: on `/`, pick "Upload a folder" and choose `demo/chess`.
 
 If you have local edits to `RepositoryExplorer.tsx`, pulling main gives a modify/delete
 conflict. Move the change into the screen that now owns it, or send it to Dev 5.

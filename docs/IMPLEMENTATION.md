@@ -162,12 +162,18 @@ Vite, React 19 and TypeScript, styled with shadcn/ui on Base UI, Tailwind v4, Ph
 icons and IBM Plex, following the template in [`design/`](design/).
 
 - App shell with live system-status chips on every screen.
-- **01 New migration**: import the demo fixture or upload a ZIP.
+- **01 New migration**: import the demo fixture or upload a project folder. The browser
+  drops caches, build output, binaries and secrets such as `.env` before uploading.
 - **02 Overview**: modules table, snapshot counts, declared Python version, warnings.
 - **03 Graph**: React Flow with a dagre layout; selecting a module highlights its
   dependants, `/` filters, and the graph re-fits on resize.
 - **04 Module inspector**: symbols, imports, dependants and read-only source in Monaco.
-- Plan, Run, Report and Search screens are placeholders.
+- **05 Plan**: pick a migration target, have Argon order the units, review each unit's
+  risk and visible cases, then approve the plan and start a run.
+- **06 Run**: run state, current unit, attempt and test counts, the graph coloured by
+  unit state, and the event log. It polls every 1.5 s until the run's closing event
+  arrives. A run can be cancelled from the header.
+- Report and Search screens are placeholders.
 
 ## 5. Demo inputs
 
@@ -191,9 +197,12 @@ icons and IBM Plex, following the template in [`design/`](design/).
   hybrid search puts it first for "where does the final customer bill get rounded?",
   where keyword search alone ranks the wrong function first.
 - **Live agent checks**: two `gemini-4-argon` tests passed (declared-tool handshake and
-  structured planning). A full model-patch-to-verifier run has not yet been recorded.
+  structured planning).
+- **Agent patches through the verifier**: in run `run_bb0da2e79534` on Atlas Local, Argon's
+  patches for `customers.py` and `pricing.py` passed verification. The run ended
+  `completed_with_warnings` at 2 of 6 units (see Known gaps).
 - **Tests**: 544 offline backend tests, 9 in a real sandbox container, live Atlas and
-  Gemini suites behind `-m live`, and 5 frontend vitest tests. CI
+  Gemini suites behind `-m live`, and 7 frontend vitest tests. CI
   (`.github/workflows/ci.yml`) runs lint, offline tests, the container suite and the
   frontend build on every pull request.
 
@@ -207,8 +216,9 @@ icons and IBM Plex, following the template in [`design/`](design/).
 
 ## 8. Known gaps
 
-- No recorded run in which the agent's patch passes the verifier end to end.
-- Plan, Run, Report and Search screens are not built.
+- A unit with no visible behaviour cases can never pass verification, so `legacy_orders`
+  stops at 2 of 6 units (item 4 in [`notes-for-dev1.md`](notes-for-dev1.md)).
+- Report and Search screens are not built.
 - The chess demo needs dual-runtime sandbox selection, behaviour cases and target
   registration.
 - `calls` edges are not extracted.
