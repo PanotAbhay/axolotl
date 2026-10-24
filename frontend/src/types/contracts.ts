@@ -306,10 +306,10 @@ export interface AskHistoryItem {
 
 export interface AskCitation {
   path: string;
-  start_line: number;
-  end_line: number;
+  start_line: number | null;
+  end_line: number | null;
   symbol: string | null;
-  snippet: string;
+  snippet: string | null;
 }
 
 export interface AskRetrieval {

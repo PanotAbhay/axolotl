@@ -134,12 +134,12 @@ function Legend({ hasChanges = false }: { hasChanges?: boolean }) {
   );
 }
 
-function Zoom() {
+function Zoom({ focus }: { focus: string | null }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   // Re-fit when the canvas resizes, e.g. the inspector opening or expanding, so no module ends up behind it.
   const width = useStore((s) => s.width);
   const height = useStore((s) => s.height);
-  useEffect(() => void fitView(FIT), [width, height, fitView]);
+  useEffect(() => void fitView(focus ? { ...FIT, nodes: [{ id: focus }] } : FIT), [width, height, focus, fitView]);
   return (
     <Panel position="bottom-right" className="flex rounded-md border bg-card">
       <Button variant="ghost" size="icon" aria-label="Zoom in" onClick={() => void zoomIn()}>
@@ -155,13 +155,14 @@ function Zoom() {
   );
 }
 
-function Canvas({ graph, selected, filter, onSelect, attempts, dependencyChanges }: {
+function Canvas({ graph, selected, filter, onSelect, attempts, dependencyChanges, zoomToSelected }: {
   graph: GraphPayload;
   selected: string | null;
   filter: string;
   onSelect: (id: string | null) => void;
   attempts?: Map<string, number>;
   dependencyChanges?: DependencyChanges;
+  zoomToSelected?: boolean;
 }) {
   const graphWithChanges = useMemo(() => {
     if (!dependencyChanges) return graph;
@@ -280,7 +281,7 @@ function Canvas({ graph, selected, filter, onSelect, attempts, dependencyChanges
       <Panel position="bottom-left" className="max-w-[calc(100%-160px)]">
         <Legend hasChanges={Boolean(dependencyChanges?.revision)} />
       </Panel>
-      <Zoom />
+      <Zoom focus={zoomToSelected ? selected : null} />
     </ReactFlow>
   );
 }
@@ -293,6 +294,8 @@ export function GraphArea({ graph, ...canvas }: {
   onSelect: (id: string | null) => void;
   attempts?: Map<string, number>;
   dependencyChanges?: DependencyChanges;
+  /** Zoom in on the selected module instead of fitting the whole graph. Search uses it; its graph is too narrow to read whole. */
+  zoomToSelected?: boolean;
 }) {
   return (
     <div className="@container relative min-h-[420px] flex-1 bg-background bg-[linear-gradient(var(--grid)_1px,transparent_1px),linear-gradient(90deg,var(--grid)_1px,transparent_1px)] bg-size-[24px_24px]">

@@ -255,7 +255,7 @@ function Report({ report, plan, run, repoId, search }: { report: RunReport; plan
 
   return (
     <div className="flex flex-1 items-start gap-6 p-6">
-      <div className="flex max-w-[880px] min-w-0 flex-1 flex-col gap-4">
+      <div className="flex max-w-[880px] min-w-0 flex-1 flex-col gap-4 min-[1600px]:max-w-none">
         <section className={cn('flex gap-3 rounded-lg border px-5 py-4', TONE_TINT[tone], TONE_BORDER[tone])}>
           <VerdictIcon size={24} aria-hidden className={cn('mt-1 flex-none', TONE_TEXT[tone])} />
           <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -358,7 +358,7 @@ function Report({ report, plan, run, repoId, search }: { report: RunReport; plan
         </section>
       </div>
 
-      <div className="flex w-[360px] flex-none flex-col gap-4 min-[1300px]:w-[400px]">
+      <div className="flex w-[360px] flex-none flex-col gap-4 min-[1300px]:w-[400px] min-[1600px]:w-[480px]">
         {report.performance && report.performance.units.length > 0 && (
           <Panel title="Sandbox runtime" note={report.performance.method}>
             <div className="overflow-x-auto">

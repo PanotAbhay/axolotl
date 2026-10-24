@@ -114,6 +114,23 @@ function askError(error: Error) {
   return error.message;
 }
 
+// Argon writes Markdown. Only code fences, `code` and **bold** are drawn; anything else stays as written.
+function Answer({ text }: { text: string }) {
+  return (
+    <div className="text-sm leading-6 whitespace-pre-wrap wrap-anywhere">
+      {text.split(/```\w*\n?/).map((part, i) =>
+        i % 2 ? (
+          <pre key={i} className="my-1 overflow-x-auto rounded-sm border bg-code px-3 py-2 font-mono leading-5">{part.trimEnd()}</pre>
+        ) : (
+          part.split(/(`[^`\n]+`|\*\*[^*\n]+\*\*)/).map((s, j) =>
+            j % 2 === 0 ? s : s[0] === '`' ? <code key={`${i}-${j}`} className="font-mono">{s.slice(1, -1)}</code> : <strong key={`${i}-${j}`} className="font-semibold">{s.slice(2, -2)}</strong>,
+          )
+        ),
+      )}
+    </div>
+  );
+}
+
 function AskPane({ repoId, graph, onSelect }: { repoId: string; graph: UseQueryResult<GraphPayload>; onSelect: (id: string | null) => void }) {
   const [draft, setDraft] = useState('');
   const [turns, setTurns] = useState<AskTurn[]>([]);
@@ -147,10 +164,10 @@ function AskPane({ repoId, graph, onSelect }: { repoId: string; graph: UseQueryR
         <div aria-live="polite" className="flex min-h-40 flex-col gap-4 p-4 xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
           {!turns.length && <p className="text-sm text-muted-foreground">Ask a question about the repository to see the answer and its retrieval evidence.</p>}
           {turns.map((turn, index) => (
-            <article key={`${index}-${turn.question}`} className="flex flex-col gap-2 border-b pb-4 last:border-b-0">
+            <article key={`${index}-${turn.question}`} className="flex min-w-0 flex-col gap-2 border-b pb-4 last:border-b-0">
               <h3 className="font-medium">{turn.question}</h3>
               {!turn.answer.grounded && <p role="status" className="rounded-sm border border-warning px-2 py-1 text-sm text-warning">Not grounded in the code</p>}
-              <p className="text-sm leading-6 whitespace-pre-wrap">{turn.answer.answer}</p>
+              <Answer text={turn.answer.answer} />
               {turn.answer.truncated && <p role="status" className="text-sm text-warning">The answer was truncated.</p>}
               {turn.answer.citations.length > 0 && (
                 <section aria-label="Citations" className="flex flex-col gap-2">
@@ -165,10 +182,11 @@ function AskPane({ repoId, graph, onSelect }: { repoId: string; graph: UseQueryR
                           onClick={() => node && onSelect(node.id)}
                           className="font-mono text-left text-sm underline underline-offset-4 disabled:no-underline disabled:text-muted-foreground"
                         >
-                          {citation.path}:{citation.start_line}{citation.end_line !== citation.start_line ? `–${citation.end_line}` : ''}
+                          {citation.path}
+                          {citation.start_line !== null && `:${citation.start_line}${citation.end_line !== null && citation.end_line !== citation.start_line ? `–${citation.end_line}` : ''}`}
                         </button>
-                        {citation.symbol && <p className="font-mono text-sm text-muted-foreground">{citation.symbol}</p>}
-                        <p className="mt-1 font-mono text-sm leading-5 whitespace-pre-wrap">{citation.snippet}</p>
+                        {citation.symbol && <p className="font-mono text-sm wrap-anywhere text-muted-foreground">{citation.symbol}</p>}
+                        {citation.snippet && <p className="mt-1 font-mono text-sm leading-5 whitespace-pre-wrap wrap-anywhere">{citation.snippet}</p>}
                       </div>
                     );
                   })}
@@ -178,8 +196,8 @@ function AskPane({ repoId, graph, onSelect }: { repoId: string; graph: UseQueryR
                 <h4 className="text-sm font-medium">Retrieval</h4>
                 {turn.answer.retrieval.map((item, retrievalIndex) => (
                   <p key={`${item.tool}-${retrievalIndex}`} className="break-words text-sm text-muted-foreground">
-                    <span className="font-mono">{item.tool}</span> · “{item.query}”{item.mode_used && ` · ${item.mode_used}`}
-                    {item.native_hybrid !== null && ` · ${item.native_hybrid ? 'native hybrid' : 'app-side fusion'}`} · {item.hit_count} hits
+                    <span className="font-mono">{item.tool}</span>{item.query && ` · “${item.query}”`}{item.mode_used && ` · ${item.mode_used}`}
+                    {item.native_hybrid !== null && ` · ${item.native_hybrid ? 'native hybrid' : 'app-side fusion'}`} · {item.hit_count} {item.hit_count === 1 ? 'hit' : 'hits'}
                   </p>
                 ))}
                 {!turn.answer.retrieval.length && <p className="text-sm text-muted-foreground">No retrieval calls were reported.</p>}
@@ -349,7 +367,7 @@ export default function SearchScreen() {
           </div>
         </div>
       </section>
-      <GraphArea graph={graph} selected={module} filter="" onSelect={select} />
+      <GraphArea graph={graph} selected={module} filter="" onSelect={select} zoomToSelected />
       <AskPane repoId={repoId} graph={graph} onSelect={select} />
     </main>
   );
