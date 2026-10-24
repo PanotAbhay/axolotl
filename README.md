@@ -105,7 +105,6 @@ else in `.env.example` has a working default.
 | Document | What's in it |
 |---|---|
 | [docs/ONBOARDING.md](docs/ONBOARDING.md) | **Start here.** Setup, the rules, and a per-role guide to what exists and what to build |
-| [docs/hackathon-tracks.md](docs/hackathon-tracks.md) | How Axolotl answers each Encode London 2026 track (DeepMind, MongoDB, Agents That Ship), with evidence and status |
 | [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) | What works, what is broken and what is left, with the GitHub tickets and the product features |
 | [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | Everything implemented so far, by area, with timeline, evidence and contributors |
 | [docs/architecture.md](docs/architecture.md) | How the pieces fit, the state machine, where each safety property is enforced, what's real today |
