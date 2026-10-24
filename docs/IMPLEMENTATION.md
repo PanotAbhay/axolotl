@@ -171,9 +171,12 @@ icons and IBM Plex, following the template in [`design/`](design/).
 - **05 Plan**: pick a migration target, have Argon order the units, review each unit's
   risk and visible cases, then approve the plan and start a run.
 - **06 Run**: run state, current unit, attempt and test counts, the graph coloured by
-  unit state, and the event log. It polls every 1.5 s until the run's closing event
+  unit state (a node shows its attempt once a repair starts), the gate results of the
+  latest verification, and a timeline of the run's events. Tool calls are paired with
+  their results, IDs are replaced by file paths, and Argon's rationale and reasons sit
+  next to what the verifier found. It polls every 1.5 s until the run's closing event
   arrives. A run can be cancelled from the header.
-- Report and Search screens are placeholders.
+- The Diff, Report and Search screens are not built yet.
 
 ## 5. Demo inputs
 
@@ -202,7 +205,7 @@ icons and IBM Plex, following the template in [`design/`](design/).
   patches for `customers.py` and `pricing.py` passed verification. The run ended
   `completed_with_warnings` at 2 of 6 units (see Known gaps).
 - **Tests**: 544 offline backend tests, 9 in a real sandbox container, live Atlas and
-  Gemini suites behind `-m live`, and 7 frontend vitest tests. CI
+  Gemini suites behind `-m live`, and 13 frontend vitest tests. CI
   (`.github/workflows/ci.yml`) runs lint, offline tests, the container suite and the
   frontend build on every pull request.
 
@@ -218,7 +221,8 @@ icons and IBM Plex, following the template in [`design/`](design/).
 
 - A unit with no visible behaviour cases can never pass verification, so `legacy_orders`
   stops at 2 of 6 units (item 4 in [`backend-issues.md`](backend-issues.md)).
-- Report and Search screens are not built.
+- The Diff, Report and Search screens are not built. The Diff screen also waits on
+  items 11 and 12 in [`backend-issues.md`](backend-issues.md).
 - The chess demo needs dual-runtime sandbox selection, behaviour cases and target
   registration.
 - `calls` edges are not extracted.
