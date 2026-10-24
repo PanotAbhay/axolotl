@@ -20,7 +20,7 @@ frontend works around an issue, the item says so.
 | 10 | A unit's `attempts` reads 0 until the unit ends | Dev 2 | No, the frontend works around it |
 | 11 | The diff has no baseline, so every file reads as new | Dev 4 | Yes: the diff at 2:35 in the demo, and the report's changed files |
 | 12 | The unit endpoint returns no verifications | Dev 2 | The Diff screen's per-case table |
-| 13 | Nothing fills the report's runtime timings | Dev 4, Dev 2 | No, the Report hides the runtime panel |
+| 13 | Nothing fills the report's runtime timings | Dev 4, Dev 2 | No, the Report leaves the runtime panel out without it |
 
 ## 1. The runtime endpoint returns 500 for repos imported on another machine
 
@@ -242,3 +242,7 @@ before/after runtime comparison per unit.
 Question: will the verifier time each case on the old and new code (Dev 4), and the report builder
 fill `performance` (Dev 2)? If not, the Report leaves the runtime panel out instead of showing
 "not measured" for every unit.
+
+Decided by Dev 5 on 24 Oct: the Report keeps the before/after runtime panel. If this question has
+no answer when the Report screen is built, the panel is left out. `CaseOutcome.duration_ns`
+("median call time inside the harness") is already in the contract, but nothing fills it yet.
