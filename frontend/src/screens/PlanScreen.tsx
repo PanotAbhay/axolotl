@@ -55,7 +55,7 @@ function Plan({ plan, runLink, onStart, starting, startError }: {
 }) {
   const qc = useQueryClient();
   const approve = useMutation({
-    mutationFn: () => approvePlan(plan.plan_id),
+    mutationFn: () => approvePlan(plan.plan_id, true),
     onSuccess: (p) => qc.setQueryData(['plan', p.plan_id], p),
   });
   const [StatusIcon, status, tone] = PLAN_STATUS[plan.status];
