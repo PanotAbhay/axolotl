@@ -9,8 +9,12 @@ import type {
   ApiErrorBody,
   DemoFixture,
   GraphPayload,
+  MigrationPlan,
+  MigrationTarget,
   ModuleDetail,
   RepositoryRecord,
+  RunEvent,
+  RunSummary,
   RuntimeInfo,
   SystemStatus,
 } from '../types/contracts';
@@ -122,4 +126,45 @@ export function getModule(repoId: string, moduleId: string): Promise<ModuleDetai
 /** GET /api/v1/repositories/{repo_id}/runtime - declared Python version (§11 addition). */
 export function getRuntime(repoId: string): Promise<RuntimeInfo> {
   return apiFetch<RuntimeInfo>(`${repo(repoId)}/runtime`);
+}
+
+const post = <T>(path: string, body?: unknown) =>
+  apiFetch<T>(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) });
+const plan = (planId: string) => `/plans/${encodeURIComponent(planId)}`;
+const run = (runId: string) => `/runs/${encodeURIComponent(runId)}`;
+
+/** GET /api/v1/migration-targets - unsupported targets come back with a reason. */
+export function listTargets(): Promise<MigrationTarget[]> {
+  return apiFetch<MigrationTarget[]>('/migration-targets');
+}
+
+/** POST /api/v1/repositories/{repo_id}/plans - Argon orders the units; 409 for static-only repositories. */
+export function createPlan(repoId: string, targetId: string): Promise<MigrationPlan> {
+  return post<MigrationPlan>(`${repo(repoId)}/plans`, { target_id: targetId });
+}
+
+export function getPlan(planId: string): Promise<MigrationPlan> {
+  return apiFetch<MigrationPlan>(plan(planId));
+}
+
+export function approvePlan(planId: string): Promise<MigrationPlan> {
+  return post<MigrationPlan>(`${plan(planId)}/approve`, { approved: true });
+}
+
+/** POST /api/v1/plans/{plan_id}/runs - 409 PLAN_NOT_APPROVED until approved. */
+export function startRun(planId: string): Promise<RunSummary> {
+  return post<RunSummary>(`${plan(planId)}/runs`);
+}
+
+export function getRun(runId: string): Promise<RunSummary> {
+  return apiFetch<RunSummary>(run(runId));
+}
+
+export function cancelRun(runId: string): Promise<RunSummary> {
+  return post<RunSummary>(`${run(runId)}/cancel`);
+}
+
+/** GET /api/v1/runs/{run_id}/events - only events after `afterSequence`, oldest first. */
+export function listRunEvents(runId: string, afterSequence: number): Promise<RunEvent[]> {
+  return apiFetch<RunEvent[]>(`${run(runId)}/events?after_sequence=${afterSequence}`);
 }

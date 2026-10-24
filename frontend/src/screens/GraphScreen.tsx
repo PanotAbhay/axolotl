@@ -1,5 +1,5 @@
 import { CornersOutIcon, MagnifyingGlassIcon, MinusIcon, PlusIcon } from '@phosphor-icons/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import {
   Handle,
   MarkerType,
@@ -20,9 +20,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useOutletContext, useParams, useSearchParams } from 'react-router-dom';
 
-import { getGraph } from '@/api/client';
+import { getGraph, getPlan } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { dependencyEdges } from '@/lib/graph';
+import { isLive, POLL_MS, useRun } from '@/lib/run';
 import { TONE_BORDER, TONE_TEXT, TONE_TINT, UNIT_STATUS } from '@/lib/status';
 import { ModuleInspector } from '@/screens/ModuleInspector';
 import type { GraphEdge, GraphNode, GraphPayload, Resolution } from '@/types/contracts';
@@ -222,6 +223,32 @@ function Canvas({ graph, selected, filter, onSelect }: {
   );
 }
 
+/** The grid-backed canvas: the graph, or a line saying why there isn't one. Shared with the run screen. */
+export function GraphArea({ graph, ...canvas }: {
+  graph: UseQueryResult<GraphPayload>;
+  selected: string | null;
+  filter: string;
+  onSelect: (id: string | null) => void;
+}) {
+  return (
+    <div className="@container relative min-h-[420px] flex-1 bg-background bg-[linear-gradient(var(--grid)_1px,transparent_1px),linear-gradient(90deg,var(--grid)_1px,transparent_1px)] bg-size-[24px_24px]">
+      {graph.data?.nodes.length ? (
+        <div className="absolute inset-0">
+          <Canvas graph={graph.data} {...canvas} />
+        </div>
+      ) : (
+        <p className="p-6 text-muted-foreground">
+          {graph.isError
+            ? `Couldn’t load the graph: ${graph.error.message}`
+            : graph.data
+              ? 'No modules were found in this snapshot.'
+              : 'Loading the graph…'}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** Lives in the tab bar, as in the template. `/` focuses it from anywhere outside a text field. */
 function FilterField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const input = useRef<HTMLInputElement>(null);
@@ -262,7 +289,15 @@ export default function GraphScreen() {
   const runId = params.get('run');
   const [filter, setFilter] = useState('');
   const [expanded, setExpanded] = useState(false);
-  const graph = useQuery({ queryKey: ['graph', repoId, runId], queryFn: () => getGraph(repoId, runId) });
+  const run = useRun(runId);
+  // Unit statuses come from the run, so they move while it does.
+  const graph = useQuery({
+    queryKey: ['graph', repoId, runId],
+    queryFn: () => getGraph(repoId, runId),
+    refetchInterval: runId && isLive(run.data) ? POLL_MS : false,
+  });
+  const planId = params.get('plan');
+  const plan = useQuery({ queryKey: ['plan', planId], queryFn: () => getPlan(planId!), enabled: Boolean(planId) });
 
   const select = (id: string | null) =>
     setParams(
@@ -277,21 +312,7 @@ export default function GraphScreen() {
   return (
     <main className="flex min-h-[480px] flex-1 flex-col md:flex-row">
       {navSlot && createPortal(<FilterField value={filter} onChange={setFilter} />, navSlot)}
-      <div className="@container relative min-h-[420px] flex-1 bg-background bg-[linear-gradient(var(--grid)_1px,transparent_1px),linear-gradient(90deg,var(--grid)_1px,transparent_1px)] bg-size-[24px_24px]">
-        {graph.data?.nodes.length ? (
-          <div className="absolute inset-0">
-            <Canvas graph={graph.data} selected={selected} filter={filter} onSelect={select} />
-          </div>
-        ) : (
-          <p className="p-6 text-muted-foreground">
-            {graph.isError
-              ? `Couldn’t load the graph: ${graph.error.message}`
-              : graph.data
-                ? 'No modules were found in this snapshot.'
-                : 'Loading the graph…'}
-          </p>
-        )}
-      </div>
+      <GraphArea graph={graph} selected={selected} filter={filter} onSelect={select} />
       {selected && graph.data && (
         <aside
           aria-label="Module inspector"
@@ -307,6 +328,7 @@ export default function GraphScreen() {
               moduleId={selected}
               graph={graph.data}
               runId={runId}
+              unit={plan.data?.units.find((u) => u.module_ids.includes(selected))}
               expanded={expanded}
               onExpand={setExpanded}
               onClose={() => select(null)}

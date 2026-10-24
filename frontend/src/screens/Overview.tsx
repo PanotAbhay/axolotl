@@ -15,7 +15,7 @@ const ANALYSIS: Record<RepositoryRecord['analysis_status'], [typeof CheckCircleI
   failed: [XCircleIcon, 'Failed', 'text-failed'],
 };
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col">
       <span className="text-sm font-medium text-muted-foreground">{label}</span>
