@@ -16,6 +16,7 @@ an issue, the item says so.
 | 7 | Interrupted runs keep their running unit states | Dev 2 | No |
 | 8 | Questions | Dev 2 | No |
 | 9 | Importing chess takes minutes because of search indexing | Dev 1, Dev 3 | Only if chess is uploaded live |
+| 10 | A unit's `attempts` reads 0 until the unit ends | Dev 2 | No, the frontend works around it |
 
 ## 1. The runtime endpoint returns 500 for repos imported on another machine
 
@@ -179,3 +180,15 @@ Suggested fix: save the repository and respond first, then index in the backgrou
 indexing progress in `GET /system/status` or on the repository record. A cheaper option is to
 skip the Argon descriptions at import time and add them when `POST /repositories/{id}/index` is
 called.
+
+## 10. A unit's `attempts` reads 0 until the unit ends (Dev 2)
+
+`RunSummary.units[].attempts` is written only after the unit's Argon session ends
+([worker.py:298](../backend/app/orchestration/worker.py)). The status is written through as it
+changes, so while a unit runs the summary says `repairing` with `attempts: 0`. In run
+`run_eb826f4da0d5` (24 Oct), `storage.py` failed its first verification at event 81 and repaired
+for a minute with `attempts: 0`, so the Run screen's header and graph said "Attempt 1".
+
+The frontend works around it: while a unit runs, it takes the highest `attempt` from the unit's
+events, and counts a repair as the next attempt. Suggested fix: set `state.attempts` from
+`controller.attempts_used` in `write_status` as well, so the summary is right during the run.
