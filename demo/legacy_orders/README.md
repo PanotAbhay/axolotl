@@ -1,5 +1,9 @@
 # legacy_orders — demo fixture
 
+> **Backup demo since 24 Oct 2026.** Chess (Python 2.7 → 3.14) is the MVP demo. This
+> fixture is the backup if chess fails, so keep it working and don't delete it. See
+> [PROJECT_STATUS.md](../../docs/PROJECT_STATUS.md).
+
 **Provenance: written by the Axolotl team for this project.** It is not derived from
 any real or third-party codebase, contains no customer data, and the customer names in
 `customers.py` are invented.

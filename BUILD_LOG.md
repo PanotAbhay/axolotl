@@ -1615,3 +1615,23 @@ Item 1 in [docs/backend-issues.md](docs/backend-issues.md), from Dev 5.
   `null` as "Not declared" with the note under it.
 
 562 offline backend tests (2 new), ruff clean. No frontend changes.
+
+---
+
+## Project manager: chess is the MVP demo; tickets on GitHub
+
+Decisions of 24 Oct, recorded across the docs with a dated note:
+
+- **Chess, Python 2.7 → 3.14, is the MVP demo.** It can't be migrated yet; that is the bug
+  [#30](https://github.com/Prittstick22/axolotl/issues/30), with one sub-ticket per piece
+  (folder upload screen, import time, case routing, dual-runtime sandbox, chess cases,
+  `python2_to_3` target). The Spec listed Python 2 → 3 as a non-goal; the decision overrides it.
+- **`legacy_orders` is the backup demo.** Kept, and must keep working.
+- **Dev 4 (the verifier) owns the demo script, the three videos and the presentation**, moved
+  from Dev 5 (#14, #15, #31).
+
+All open work is now GitHub issues #2–#43, labelled `MVP`, `feature`, `bug`, `stretch` or `spike` and `dev 1` to
+`dev 5`, unassigned. [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) has the status, the
+tickets by developer and the product feature list. Two bugs found during the review: every
+import gets the `legacy_orders` held-out cases (#29), and an import waits for search indexing
+(#28, from Dev 5).

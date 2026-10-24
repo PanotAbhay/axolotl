@@ -7,8 +7,12 @@ How to use: give **each developer's agent three files** — the original Spec, `
 | **Dev 1 — Argon Agent** | Gemini adapter, tool schemas, prompts, plan + migrate/repair loop | `AGENT_DEV1_ARGON_AGENT.md` | `docs/argon-agent.md`, DeepMind write-up |
 | **Dev 2 — Orchestrator & Integration Lead** | Repo skeleton, contracts, SCC scheduler, state machine, events, plans/runs API, reports, README | `AGENT_DEV2_ORCHESTRATOR_INTEGRATION.md` | README, architecture docs, submission |
 | **Dev 3 — Graph & Atlas** | Safe import, AST, dependency graph, all MongoDB persistence, Atlas Search / Vector / Hybrid | `AGENT_DEV3_INGESTION_GRAPH_ATLAS.md` | `docs/mongodb-atlas.md`, MongoDB write-up |
-| **Dev 4 — Verifier** | Legacy demo fixture, held-out cases, Docker sandbox, workspaces/patches, differential verifier | `AGENT_DEV4_VERIFIER_SANDBOX_FIXTURE.md` | `docs/safety-and-limitations.md` |
-| **Dev 5 — Frontend** | React app, graph UI, run dashboard, diff/report, search UI, demo flow, videos | `AGENT_DEV5_FRONTEND.md` | Demo script, 3 videos |
+| **Dev 4 — Verifier** | Legacy demo fixture, held-out cases, Docker sandbox, workspaces/patches, differential verifier, demo script, videos, presentation | `AGENT_DEV4_VERIFIER_SANDBOX_FIXTURE.md` | `docs/safety-and-limitations.md`, demo script, 3 videos, presentation |
+| **Dev 5 — Frontend** | React app, graph UI, run dashboard, diff/report, search UI | `AGENT_DEV5_FRONTEND.md` | The UI the demo runs on |
+
+> **Changed 24 Oct 2026:** the demo script, the three videos and the presentation moved
+> from Dev 5 to Dev 4. Chess (Python 2.7 → 3.14) is the MVP demo, with `legacy_orders`
+> as the backup. See [PROJECT_STATUS.md](../PROJECT_STATUS.md).
 
 ## How the pieces connect
 

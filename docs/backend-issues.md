@@ -41,6 +41,9 @@ case with a warning instead of an error. Add a test for the missing-snapshot cas
 
 ## 2. Chess can't be migrated from 2.7 to 3.14 yet
 
+Since 24 Oct chess is the MVP demo, with `legacy_orders` as the backup, so this is now
+top priority. Tracked in [#30](https://github.com/Prittstick22/axolotl/issues/30) and its sub-tickets.
+
 Chess is the Python 2.7 input and Python 3.14 is the goal. The UI can upload chess and show
 its graph, source and declared Python 2.7. It can't plan or run the migration:
 

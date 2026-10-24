@@ -1,5 +1,9 @@
 # Will's chess demo input
 
+> **Decision, 24 Oct 2026:** the MVP demo is Will's chess game, migrated from Python 2.7 to Python 3.14.
+> `legacy_orders` stays as the backup demo and must keep working. Chess can't be migrated yet:
+> see [#30](https://github.com/Prittstick22/axolotl/issues/30) and [PROJECT_STATUS.md](PROJECT_STATUS.md).
+
 ## Source and placement
 
 The supplied `local-chess` directory is preserved unchanged in `demo/chess/`:

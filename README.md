@@ -28,10 +28,13 @@ All 11 Markdown documents supplied in the team's "Encode Hackathon Projects" fol
 are available in [`docs/planning/`](docs/planning/). The repository versions retain
 the newer PyMongo async corrections in place of the supplied Motor instructions.
 
-The selected demo is a terminal chess game written in Python 2, migrating to Python 3.
-The existing orders fixture remains the implemented test fixture; chess integration,
-repeatable terminal sessions and Python 2 baseline execution still need to be supplied
-and verified. Planning documents describing the orders demo reflect that earlier plan.
+> **Decision, 24 Oct 2026: chess is the MVP demo.** The demo migrates Will's terminal
+> chess game from Python 2.7 to Python 3.14. The `legacy_orders` fixture stays as the
+> backup demo and must keep working. Chess can't be migrated yet: the sandbox has no
+> Python 2.7 or 3.14 runtime, there are no chess behaviour cases, and `python2_to_3` is
+> unsupported. That work is tracked in [#30](https://github.com/Prittstick22/axolotl/issues/30); the full plan is in
+> [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Planning documents describing the
+> orders demo reflect the earlier plan.
 
 ## Quick start
 
@@ -69,13 +72,14 @@ Node 20+, Docker running, and a MongoDB Atlas cluster plus a Gemini API key.
 | Document | What's in it |
 |---|---|
 | [docs/ONBOARDING.md](docs/ONBOARDING.md) | **Start here.** Setup, the rules, and a per-role guide to what exists and what to build |
+| [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) | What works, what is broken and what is left, with the GitHub tickets and the product features |
 | [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | Everything implemented so far, by area, with timeline, evidence and contributors |
 | [docs/architecture.md](docs/architecture.md) | How the pieces fit, the state machine, where each safety property is enforced, what's real today |
 | [docs/api-contracts.md](docs/api-contracts.md) | Every endpoint, every error code, implementation status |
 | [docs/safety-and-limitations.md](docs/safety-and-limitations.md) | Sandbox protections and their honest limits *(Dev 4)* |
 | [docs/mongodb-atlas.md](docs/mongodb-atlas.md) | Collections, Search / Vector / Hybrid indexes *(Dev 3)* |
 | [docs/argon-agent.md](docs/argon-agent.md) | Model adapter, tool schemas, prompts *(Dev 1)* |
-| [docs/demo-script.md](docs/demo-script.md) | The 3-minute demo sequence *(Dev 5)* |
+| [docs/demo-script.md](docs/demo-script.md) | The 3-minute demo sequence, chess with `legacy_orders` as the backup *(Dev 4)* |
 | [runner/policy.md](runner/policy.md) | The exact sandbox profile, and what it does **not** protect against |
 | [demo/legacy_orders/README.md](demo/legacy_orders/README.md) | The fixture, the seeded rounding rule, and the parameters needing confirmation |
 | [BUILD_LOG.md](BUILD_LOG.md) | Timestamped record of what was built when, and the open decisions |
@@ -161,6 +165,8 @@ Merge at least every three hours.
 
 ## Deviations from SHARED_CONTRACTS
 
+- **Chess, Python 2.7 → 3.14, is the MVP demo.** The Spec lists Python 2 → 3 as a
+  hackathon non-goal; the team chose it on 24 Oct, with `legacy_orders` as the backup.
 - **PyMongo, not Motor.** `pymongo>=4.9`'s `AsyncMongoClient` replaces Motor, which
   reached end of life in May 2026. `get_db()` returns an `AsyncDatabase`; the §8
   signature is otherwise unchanged. All 8 doc references updated.

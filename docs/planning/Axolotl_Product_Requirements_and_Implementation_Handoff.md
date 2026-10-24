@@ -13,6 +13,12 @@
 
 ## 0. Read this first — decisions, priorities and non-negotiables
 
+> **Overridden 24 Oct 2026:** the team chose Python 2.7 → 3.14 (Will's chess game) as
+> the MVP demo, with `legacy_orders` and Modern Python 3 as the backup. Where this Spec
+> lists Python 2 → 3 as a non-goal or names Modern Python 3 as the one MVP target, the
+> decision wins. The sandbox and safety rules still apply unchanged. See
+> [PROJECT_STATUS.md](../PROJECT_STATUS.md).
+
 ### Product in one paragraph
 
 **Axolotl is a dependency-aware autonomous modernisation platform for legacy Python applications.** A developer imports an older Python repository, explores a graph showing modules, classes, functions and their dependencies, chooses a supported migration target, and starts an AI-guided migration. Gemini 4 Argon analyses the repository and observed program behaviour, proposes a dependency-respecting upgrade sequence, modernises modules in an isolated working copy, executes independent old-versus-new tests after each change, investigates mismatches, retries bounded repairs, and produces a reviewable patch, visual architecture map and evidence-backed migration report. MongoDB Atlas stores repository intelligence, graph relationships, semantic search records, behavioural evidence, agent events and verification results.

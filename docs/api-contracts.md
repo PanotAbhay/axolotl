@@ -124,7 +124,7 @@ The status overlay on `/graph` comes from Dev 2's
 | `fastapi` | ❌ | stretch goal, not in the MVP |
 | `async_python` | ❌ | changing concurrency changes observable behaviour, so differential verification is meaningless |
 | `python_to_typescript` | ❌ | no shared runtime for the verifier to execute both sides in |
-| `python2_to_3` | ❌ | needs a Python 2 runtime in the sandbox image |
+| `python2_to_3` | ❌ | needs a Python 2 runtime in the sandbox image. **The MVP target since 24 Oct:** [#21](https://github.com/Prittstick22/axolotl/issues/21) |
 
 Unsupported targets are returned so the UI can show them **disabled with a reason**,
 not hidden. Asking for one is 422 `UNSUPPORTED_TARGET`.
