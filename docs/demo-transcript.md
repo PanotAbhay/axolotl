@@ -13,11 +13,11 @@ and if a beat feels rushed, the cause is a skipped pause rather than too many wo
 
 ## Intro — 0:00
 
-Every team has code nobody dares touch. Not because it's bad — because nobody can prove
-a rewrite still behaves the same.
+Welcome to Axolotl — the safe way to migrate legacy code nobody dares touch, because
+nobody can prove a rewrite behaves the same.
 
-This chess game is ours, stuck on Python 2.7. Axolotl migrates it to 3.14, then runs old and
-new on the same inputs, in containers, and compares every output.
+Today's example: a chess game stuck on Python 2.7. Axolotl migrates it to 3.14, runs
+old and new on the same inputs, and compares every output.
 
 ---
 
