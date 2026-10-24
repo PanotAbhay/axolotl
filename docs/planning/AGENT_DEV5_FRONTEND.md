@@ -11,8 +11,6 @@ You are the implementation agent for **Dev 5** on Axolotl (Encode London 2026). 
 2. `SHARED_CONTRACTS.md` — API (§6), models (§4), events (§7)
 3. This brief
 
-**Kickoff rule:** no project code before **Fri 23 Oct 2026 17:00 Europe/London**. Before then you may sketch screens on paper/Figma, read React Flow and Monaco docs, and plan the demo storyboard. No repo, no scaffold. Check the time first.
-
 ---
 
 ## Your mission

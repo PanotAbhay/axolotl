@@ -46,4 +46,3 @@ The pass/fail authority chain: **Dev 4 verifier → Dev 2 records it → Dev 5 d
 - Gemini 4 Argon quota, exact Interactions API tool-call shape, available embedding model.
 - Atlas cluster version (native `$rankFusion` needs 8.0+), Search/Vector index permissions.
 - A real engineer who can validate the problem (the "Alex" persona is illustrative).
-- Nobody writes project code before Fri 23 Oct 17:00.

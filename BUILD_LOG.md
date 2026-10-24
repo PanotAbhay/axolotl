@@ -1666,3 +1666,17 @@ Items 4 and 11 in [docs/backend-issues.md](docs/backend-issues.md) (#2 and #44),
 
 565 offline backend tests (3 new), 9 container tests, ruff clean. No frontend changes: the Run
 screen already shows a non-required skipped gate as "Differential skipped".
+
+---
+
+## Kickoff rule removed
+
+The event staff dropped the rule against writing code before Fri 23 Oct 17:00, and it was
+causing problems, so it is gone from every planning doc: the five dev briefs, `SHARED_CONTRACTS`
+§0, `TEAM_SPLIT`, `TEAM_TOOLING_PREP`, `APP_SCAFFOLD_SETUP`, `PRE_KICKOFF_PREP` and the Spec.
+`SHARED_CONTRACTS` §0.1 is kept as a "removed" line so the §0.2–§0.8 references in the code
+still point at the right rules. Mentions of kickoff as a time ("confirm quotas at kickoff") stay.
+
+Also in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md): the demo script, videos and presentation
+(#14, #15, #31) now come last, #2 and #44 are fixed on main pending Dev 4's review, and backend
+issue 14 is #47.

@@ -10,8 +10,6 @@ You are the implementation agent for **Dev 4** on Axolotl (Encode London 2026). 
 2. `SHARED_CONTRACTS.md` — names, shapes, ownership
 3. This brief
 
-**Kickoff rule:** no project code before **Fri 23 Oct 2026 17:00 Europe/London** — *this includes the legacy demo fixture*, which is submitted project code. Before then you may only: confirm Docker works on the demo laptop, pull `python:3.12-slim`, and read the Spec §3.3, §7, §15. Check the time first.
-
 ---
 
 ## Your mission
@@ -54,7 +52,7 @@ tests/cases.json         # visible behaviour cases
 
 Make visible cases cover ordinary inputs where naive and correct rounding agree, and put most `.xx5` edge inputs in **held-out** cases. That way a regression is *plausible* without anyone instructing the model to make one. If Argon gets it right first time, that is the honest outcome — report it. Separately, T-11 proves the verifier catches a deliberately wrong patch (a test, not shown as an Argon repair).
 
-Hand Dev 3 the exact expected import edge list for T-03. Document fixture provenance (authored by the team after kickoff) in `demo/legacy_orders/README.md`.
+Hand Dev 3 the exact expected import edge list for T-03. Document fixture provenance (authored by the team) in `demo/legacy_orders/README.md`.
 
 ## 2. Behaviour cases
 - `tests/cases.json` (visible, `case_###`) and `demo/challenge_cases/held_out.json` (`hcase_###`), format = `BehaviourCase` fields, values encoded per SHARED_CONTRACTS §5. Include case-level `description`.
