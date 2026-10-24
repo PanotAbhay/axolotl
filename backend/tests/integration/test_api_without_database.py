@@ -179,7 +179,7 @@ def test_visible_counterexamples_are_never_redacted():
 
 
 # --------------------------------------------------------------------------
-# backend issue 12: the unit endpoint returns its verifications
+# #45: the unit endpoint returns its verifications
 # --------------------------------------------------------------------------
 
 def a_comparison(case_id: str, visibility: str, old: str, new: str) -> dict:

@@ -171,7 +171,7 @@ def _redact_comparisons(
     """Same rule as the counterexamples, applied to each case comparison.
 
     The Diff screen needs the per-case old and new outputs, which live only here
-    (backend issue 12). A held-out comparison carries the expected value of a sealed
+    (#45). A held-out comparison carries the expected value of a sealed
     case, so showing it would do exactly what the held-out suite exists to prevent -
     and the UI is a read path like any other. The verdict stays visible either way: a
     reviewer may see *that* a held-out case failed without seeing what it expected.

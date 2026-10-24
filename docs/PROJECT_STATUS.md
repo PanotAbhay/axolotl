@@ -304,7 +304,7 @@ Nobody is working on these. Say if any should become tickets.
 ## Sources
 
 [Spec](planning/Axolotl_Product_Requirements_and_Implementation_Handoff.md) §0, §2.2, §3.1, §14
-and §16 · [IMPLEMENTATION.md](IMPLEMENTATION.md) · [backend-issues.md](backend-issues.md) ·
+and §16 · [IMPLEMENTATION.md](IMPLEMENTATION.md) · [GitHub issues](https://github.com/Prittstick22/axolotl/issues) ·
 [chess-demo.md](chess-demo.md) · [mongodb-atlas.md](mongodb-atlas.md) TODO list ·
 [BUILD_LOG.md](../BUILD_LOG.md) · the five dev briefs in [planning/](planning/) · CI run
 `40043393667` on `main`.

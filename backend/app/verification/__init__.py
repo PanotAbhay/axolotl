@@ -62,7 +62,7 @@ __all__ = [
 ]
 
 # Already implemented in `store`; re-exported so `ports` can resolve it on the package
-# like every other Dev 4 call, rather than reaching into a submodule (backend issue 12).
+# like every other Dev 4 call, rather than reaching into a submodule (#45).
 list_verifications = store.list_verifications
 
 RUNNER_UNAVAILABLE = (

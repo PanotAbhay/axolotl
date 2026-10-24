@@ -725,7 +725,7 @@ async def test_last_event_sequence_never_goes_backwards(world):
 
 
 # --------------------------------------------------------------------------
-# backend issue 14: a failed Argon call must not read as a verification failure
+# #47: a failed Argon call must not read as a verification failure
 # --------------------------------------------------------------------------
 
 async def test_an_agent_error_is_journalled_and_named_as_the_block_reason(

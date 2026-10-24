@@ -348,7 +348,7 @@ async def _run_unit_session(run, plan, unit, controller) -> None:
     Advisory about *success* - the verifier alone decides that. But the outcome is the
     only record of **why a session ended early**, so it is not optional.
 
-    Discarding it cost two live runs a unit each on 24 Oct (backend issue 14).
+    Discarding it cost two live runs a unit each on 24 Oct (#47).
     `run_unit_session` catches its own exceptions and *returns* `ended_because="error"`
     rather than raising, so neither `except` below fires, `block_reason` stayed unset,
     and `_block` fell back to "no verification passed within the attempt budget". The

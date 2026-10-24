@@ -195,7 +195,7 @@ function Report({ report, plan, artefacts, run }: { report: RunReport; plan?: Mi
         </section>
       </div>
 
-      {/* No Runtime panel: report.performance is null until the runner times cases (backend issue 13). */}
+      {/* No Runtime panel: report.performance is null until the runner times cases (#46). */}
       <div className="flex w-[360px] flex-none flex-col gap-4 min-[1300px]:w-[400px]">
         {report.limitations.length > 0 && (
           <Panel title="Limitations" note="What this kind of check can’t tell you, for every run.">

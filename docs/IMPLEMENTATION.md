@@ -223,10 +223,8 @@ icons and IBM Plex, following the template in [`design/`](design/).
 
 ## 8. Known gaps
 
-- A unit with no visible behaviour cases can never pass verification, so `legacy_orders`
-  stops at 2 of 6 units (item 4 in [`backend-issues.md`](backend-issues.md)).
-- The Diff, Report and Search screens are not built. The Diff screen also waits on
-  items 11 and 12 in [`backend-issues.md`](backend-issues.md).
+- The Diff and Search screens are not built ([#5](https://github.com/Prittstick22/axolotl/issues/5),
+  [#20](https://github.com/Prittstick22/axolotl/issues/20)).
 - The chess demo needs dual-runtime sandbox selection, behaviour cases and target
   registration. Chess is the MVP demo since 24 Oct; tracked in [#30](https://github.com/Prittstick22/axolotl/issues/30).
 - `calls` edges are not extracted.
