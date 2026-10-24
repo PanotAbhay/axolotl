@@ -1,6 +1,10 @@
 # The three-minute walkthrough
 
-A chronological tour of the whole application, built around one live chess migration.
+A chronological tour of the whole application, built around one live migration.
+
+The chess game is the **example being migrated**, not part of Axolotl. It is bundled so
+the demo runs on any laptop; the product takes any Python project. Nothing in the spoken
+script should suggest the tool is chess-specific.
 Supersedes the timed table in [demo-script.md](demo-script.md), which predates the
 Search, Ask, Changes, Dependencies and Docs screens. That document's **preflight
 checklist and fallbacks still apply** and are not repeated here.
@@ -33,7 +37,7 @@ and a half between them, and do not rush the second: it carries the whole claim.
 
 | Time | Click / show | Words | Why it earns the time |
 |---|---|---|---|
-| 0:22–0:35 | **New migration.** Chess is already selected as a built-in fixture. Point at the upload option beside it | §1 Import | **Encode: permissions.** The trust gate is the first thing a judge sees, before anything runs |
+| 0:22–0:35 | **New migration.** The bundled demo project is already selected. Point at the upload option beside it | §1 Import | **Encode: permissions.** The trust gate is the first thing a judge sees, before anything runs |
 | 0:35–0:48 | **Graph.** Click one module, follow an import edge | §2 Graph | **Novel.** The dependency graph is not decoration — it controls the order of work |
 | 0:48–1:00 | **Plan.** Scroll the dependency order, then **Approve**, then **Start migration** | §3 Plan and approval | **Encode: human approval**, enforced outside the model. **The run starts here and keeps running** |
 | 1:00–1:20 | **Search.** Query `get the final amount` in **keyword**, then switch to **hybrid** | §4 Search | **MongoDB bounty, the strongest 20 seconds we have.** Atlas Search, Vector Search and native fusion, with the difference visible on screen |

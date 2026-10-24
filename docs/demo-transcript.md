@@ -17,17 +17,17 @@ and if a beat feels rushed, the cause is a skipped pause rather than too many wo
 Welcome to Axolotl — the safe way to migrate legacy code nobody dares touch, because
 nobody can prove a rewrite behaves the same.
 
-Today's example: a chess game stuck on Python 2.7. Axolotl migrates it to 3.14, runs
+Today's stand-in is a chess game stuck on Python 2.7. Axolotl migrates it to 3.14, runs
 old and new on the same inputs, and compares every output.
 
 ---
 
 ## 1. Import — 0:22
 
-Chess ships with the project, so every laptop gets the same repository.
+Axolotl takes any Python project. This one is bundled, so the demo runs anywhere.
 
-Upload anything else and it's parsed, never executed — only an exact content-hash match
-is allowed to run.
+Point it at your own and it's parsed, never executed — only an exact content-hash match
+runs.
 
 ## 2. Graph — 0:35
 
