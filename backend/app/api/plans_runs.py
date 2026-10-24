@@ -131,9 +131,9 @@ async def get_run_unit(run_id: str, unit_id: str) -> dict[str, Any]:
     return {
         "unit": unit.model_dump(),
         "verifications": [
-            _redact_comparisons(
+            _withhold_harness_logs(_redact_comparisons(
                 v if isinstance(v, dict) else v.model_dump(mode="json"), exposed
-            )
+            ))
             for v in verifications
         ],
         "counterexamples": [_redact_held_out(c) for c in plain_counterexamples],
@@ -207,6 +207,28 @@ def _redact_comparisons(
         redacted.append(sealed)
 
     return {**verification, "comparisons": redacted}
+
+
+# These gates' log is the harness's raw output: one JSON outcome per case, held-out
+# cases included, so it carries the very values `_redact_comparisons` removes.
+HARNESS_GATES = {"differential", "impacted_tests"}
+WITHHELD_LOG = "case outputs withheld: they include held-out cases. See comparisons."
+
+
+def _withhold_harness_logs(verification: dict[str, Any]) -> dict[str, Any]:
+    """Drop the harness logs whole. The comparisons carry the same results, redacted
+    case by case; filtering the log line by line would trust a 4 KB truncation not to
+    cut a held-out outcome away from its case id.
+    """
+    gates = verification.get("gates")
+    if not isinstance(gates, list):
+        return verification
+    return {**verification, "gates": [
+        {**g, "log_excerpt": WITHHELD_LOG}
+        if isinstance(g, dict) and g.get("gate") in HARNESS_GATES and g.get("log_excerpt")
+        else g
+        for g in gates
+    ]}
 
 
 @router.get("/runs/{run_id}/diff")

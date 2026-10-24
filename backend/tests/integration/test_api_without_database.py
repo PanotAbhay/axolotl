@@ -349,3 +349,25 @@ async def test_the_unit_endpoint_survives_dev4_being_unavailable(monkeypatch):
     assert body["verifications"] == []
     assert body["counterexamples"] == []
     assert body["unit"]["status"] == "migrating"
+
+def test_the_harness_logs_do_not_carry_what_the_comparisons_redact():
+    """The differential and impacted-tests gates store the harness's raw output, one
+    JSON outcome per case with held-out ones included. Redacting the comparisons alone
+    left `hcase_001`'s expected value in the same response, in the gate's log.
+    """
+    from app.api.plans_runs import WITHHELD_LOG, _withhold_harness_logs
+
+    verification = a_verification([])
+    verification["gates"] = [
+        {"gate": "differential", "status": "passed", "summary": "",
+         "log_excerpt": '{"case_id": "hcase_001", "status": "ok", "value": "2.65"}'},
+        {"gate": "impacted_tests", "status": "skipped", "summary": "", "log_excerpt": ""},
+        {"gate": "existing_tests", "status": "passed", "summary": "",
+         "log_excerpt": "12 passed in 0.14s"},
+    ]
+    gates = {g["gate"]: g for g in _withhold_harness_logs(verification)["gates"]}
+
+    assert "2.65" not in str(gates)
+    assert gates["differential"]["log_excerpt"] == WITHHELD_LOG
+    assert gates["impacted_tests"]["log_excerpt"] == ""        # nothing to withhold
+    assert gates["existing_tests"]["log_excerpt"] == "12 passed in 0.14s"
