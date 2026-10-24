@@ -57,6 +57,15 @@
   --radius-md: 6px;
   --radius-lg: 10px;
   --radius-xl: 10px;
+  /*
+   * Tailwind's defaults in px, not rem. It orders breakpoints by unit before value, so the
+   * screens' min-[1300px] widths (the template's two frames) came out ahead of md:/lg:/xl: and lost.
+   */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
 }
 
 :root {
