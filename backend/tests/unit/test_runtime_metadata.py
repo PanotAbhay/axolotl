@@ -58,3 +58,19 @@ async def test_runtime_endpoint_reads_only_registered_snapshot(client, monkeypat
     assert response.json()["declared_python"] == "2.7"
     assert response.json()["runtime_verified"] is False
     assert requested == ["repo_runtime"]
+
+
+async def test_runtime_endpoint_missing_snapshot(client, monkeypatch, tmp_path):
+    from app import ingestion
+
+    async def repository(repo_id):
+        return object()
+
+    monkeypatch.setattr(ingestion, "get_repository", repository)
+    monkeypatch.setattr(ingestion, "snapshot_path", lambda repo_id: tmp_path / "missing")
+    response = client.get("/api/v1/repositories/repo_elsewhere/runtime")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["declared_python"] is None
+    assert body["evidence"] == []
+    assert "not on this machine" in body["note"]

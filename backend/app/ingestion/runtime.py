@@ -7,6 +7,17 @@ from pathlib import Path
 
 
 def inspect_runtime(root: Path) -> dict:
+    # Snapshots are local to the importing machine; the record is shared via Atlas.
+    if not root.is_dir():
+        return {
+            "declared_python": None,
+            "evidence": [],
+            "runtime_verified": False,
+            "note": (
+                "Package metadata unavailable: this repository's snapshot is not on this "
+                "machine. Re-import the repository here to read it."
+            ),
+        }
     evidence = []
     requirements = []
     # Also accept archives containing a single top-level project directory.
