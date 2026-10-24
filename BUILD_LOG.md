@@ -1680,3 +1680,26 @@ still point at the right rules. Mentions of kickoff as a time ("confirm quotas a
 Also in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md): the demo script, videos and presentation
 (#14, #15, #31) now come last, #2 and #44 are fixed on main pending Dev 4's review, and backend
 issue 14 is #47.
+
+---
+
+## Item 12, fixed twice: the delta is the harness logs
+
+Dev 5 fixed backend item 12 (#45) on a branch while Dev 2 landed the same fix on main as
+`e4fad35` (PR #48). Both read `list_verifications` and redact sealed held-out comparisons by the
+counterexamples' rule, so as with `queryable` earlier, the branch was cut down to what `e4fad35`
+doesn't cover and merged on top of it as `23bffdc`.
+
+The gap: the differential and impacted-tests gates store the harness's raw output in
+`log_excerpt`, one JSON outcome per case with held-out ones included. `e4fad35`'s test fixtures
+have `"gates": []`, so the logs were never exercised. On Atlas Local, with `e4fad35` running,
+`unit_pricing` in `run_e5380c4d180c` returned all 10 held-out comparisons redacted, and
+`hcase_001`'s and `hcase_008`'s expected values in those two logs of the same response.
+
+The two logs are now withheld whole; the comparisons carry the same results, redacted case by
+case. Filtering line by line would trust a 4 KB truncation not to cut an outcome away from its case
+id. Live after the fix, no held-out outcome appears anywhere in the response. 599 offline backend
+tests (1 new, beside Dev 2's in `test_api_without_database.py`), ruff clean.
+
+Also: `docs/backend-issues.md` is gone (`60c3235`); GitHub issues are the source of truth for team
+issues from now on. Item 1, already fixed in `edd19ea`, became #51 and is closed.

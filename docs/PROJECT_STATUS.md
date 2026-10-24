@@ -44,7 +44,7 @@ Time left: feature freeze **Sat 22:00**, submission **Sun 10:45** (cutoff 12:00)
 ## Summary
 
 - **Working:** the backend is essentially complete. CI on `main` is green: 562 offline backend
-  tests, 9 tests in a real sandbox container, and the frontend build and lint. Screens 01–06 are
+  tests, 9 tests in a real sandbox container, and the frontend build and lint. Screens 01–06 and 08 are
   built. Argon's patches have passed the independent verifier on a real `legacy_orders` run.
 - **Broken:** chess can't be planned or run
   ([#30](https://github.com/Prittstick22/axolotl/issues/30)). A failed Argon call (a 429 or a
@@ -275,7 +275,7 @@ What Axolotl does, built or planned. ✅ is on `main`; a ticket number means it 
 | Feature | State |
 |---|---|
 | Run report built from recorded evidence, with caveats; artefact downloads | ✅ (screen 08, [#6](https://github.com/Prittstick22/axolotl/issues/6) closed) |
-| Old vs new diff, gate results, counterexamples, attempt history | API ✅ but no baseline [#44](https://github.com/Prittstick22/axolotl/issues/44) and no verifications [#45](https://github.com/Prittstick22/axolotl/issues/45); screen [#5](https://github.com/Prittstick22/axolotl/issues/5) |
+| Old vs new diff, gate results, counterexamples, attempt history | API ✅ (verifications [#45](https://github.com/Prittstick22/axolotl/issues/45) closed; baseline [#44](https://github.com/Prittstick22/axolotl/issues/44) fixed, to review); screen [#5](https://github.com/Prittstick22/axolotl/issues/5) |
 | Runtime before and after, per unit | [#46](https://github.com/Prittstick22/axolotl/issues/46) (decide first) |
 | Argon's narrative of the run, labelled as model-generated | API ✅ |
 | Migration summary: an overview of what changed | [#35](https://github.com/Prittstick22/axolotl/issues/35) |
