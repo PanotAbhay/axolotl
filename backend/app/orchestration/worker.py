@@ -14,7 +14,12 @@ import asyncio
 import logging
 
 from app.config import get_settings
-from app.errors import PLAN_NOT_APPROVED, RUN_ALREADY_FINISHED, AppError
+from app.errors import (
+    PLAN_NOT_APPROVED,
+    RUN_ALREADY_ACTIVE,
+    RUN_ALREADY_FINISHED,
+    AppError,
+)
 from app.models.contracts import (
     MigrationPlan,
     MigrationUnit,
@@ -29,6 +34,7 @@ from app.orchestration.ids import new_run_id
 from app.orchestration.scheduler import eligible_units, impacted_units, units_to_skip
 from app.orchestration.states import (
     TERMINAL_RUN_STATES,
+    TERMINAL_UNIT_STATUSES,
     final_verdict,
     transition_run,
     transition_unit,
@@ -58,6 +64,26 @@ async def start_run(plan_id: str) -> RunSummary:
             f"Plan {plan_id} is {plan.status}; approve it before starting a run",
             status_code=409,
             details={"plan_id": plan_id, "status": plan.status},
+        )
+
+    # One active run per repository (#18). A double click used to start two runs, each
+    # with its own Argon session, spending the quota twice and producing two competing
+    # sets of accepted revisions from one snapshot. Scoped to the repository rather
+    # than the plan because a second plan on the same repository is the same hazard,
+    # and `supersede_open_plans` already treats a repository as having one live plan.
+    active = [
+        r for r in await store.list_unfinished_runs()
+        if r.repository_id == plan.repository_id
+    ]
+    if active:
+        raise AppError(
+            RUN_ALREADY_ACTIVE,
+            f"Run {active[0].run_id} is still active for this repository; "
+            f"wait for it to finish or cancel it",
+            status_code=409,
+            details={"repository_id": plan.repository_id,
+                     "active_run_id": active[0].run_id,
+                     "state": active[0].state},
         )
 
     runner = await _runner_mode()
@@ -111,8 +137,49 @@ async def cancel_run(run_id: str) -> RunSummary:
 
 
 async def mark_interrupted_runs() -> list[str]:
-    """Called from the app lifespan. Honest, not resumed."""
-    return await store.mark_interrupted_runs()
+    """Called from the app lifespan. Honest, not resumed.
+
+    Fail-clean over resume (Spec §6.2 allows either): a resumed run would have no live
+    workspace and no agent session, and claiming otherwise would be a lie about what
+    was verified.
+
+    Ending it means more than the run's own state (#17). A bulk update used to flip
+    the run to `failed` and leave its units at `migrating` and `queued`, keep
+    `current_unit`, and journal nothing - so the Run screen showed a failed run whose
+    graph still said "Migrating" and whose event log simply stopped. This does what
+    cancellation does, through the same helpers, so the two cannot drift.
+    """
+    interrupted: list[str] = []
+
+    for run in await store.list_unfinished_runs():
+        for state in list(run.units):
+            if state.status in TERMINAL_UNIT_STATUSES:
+                continue
+            # Through _set_unit so each change is validated and lands in the journal:
+            # writing straight onto the document would leave the audit trail (T-15)
+            # claiming those units were still running.
+            await _set_unit(run, state.unit_id, "skipped")
+            await events.append_event(
+                run.run_id, "unit_blocked", unit_id=state.unit_id,
+                payload={"reason": "the backend restarted before this unit finished",
+                         "verification_id": None},
+            )
+
+        run.current_unit = None
+        run.error = events.truncate(events.redact(store.INTERRUPTED))
+        await _save(run)
+        # Before the terminal transition, like every other ending (#16).
+        await events.append_event(
+            run.run_id, "error",
+            payload={"code": "RUN_INTERRUPTED", "message": store.INTERRUPTED},
+        )
+        await _transition(run, "failed")
+        interrupted.append(run.run_id)
+
+    if interrupted:
+        log.warning("marked %d interrupted run(s) failed: %s",
+                    len(interrupted), interrupted)
+    return interrupted
 
 
 async def _runner_mode() -> str:
@@ -137,6 +204,29 @@ async def _save(run: RunSummary) -> None:
         run.last_event_sequence, events.last_sequence(run.run_id)
     )
     await store.save_run(run)
+
+
+async def _finish(run: RunSummary, verdict: RunState) -> None:
+    """End the run with its closing event already in the journal (#16).
+
+    Spec §9.3 says a client polls only while the run is non-terminal, so a client that
+    does exactly that used to stop before `report_generated` - 19 seconds before it,
+    in `run_bb0da2e79534` - and never see it. For those seconds the report endpoint
+    also had no report for a run that already read as finished.
+
+    The verdict is validated and set in memory first, so the report records the state
+    it is the report *of*; the document is only written, and so only reads terminal to
+    anyone polling, once `report_generated` or `error` is in the journal.
+    `_generate_report` always appends one or the other and never raises, so this
+    cannot leave a run un-transitioned.
+    """
+    previous = run.state
+    run.state = transition_run(run.run_id, run.state, verdict)
+    await _generate_report(run)
+    await events.append_event(
+        run.run_id, "run_state_changed", payload={"from": previous, "to": verdict}
+    )
+    await _save(run)
 
 
 async def _transition(run: RunSummary, target: RunState) -> None:
@@ -215,10 +305,7 @@ async def _execute(run_id: str, plan: MigrationPlan) -> None:
             await _generate_report(run)
             return
 
-        verdict = final_verdict(_statuses(run), final_passed)
-        await _transition(run, verdict)
-        await _generate_report(run)
-        await _save(run)   # pick up report_generated's sequence
+        await _finish(run, final_verdict(_statuses(run), final_passed))
 
     except asyncio.CancelledError:
         raise
@@ -271,27 +358,41 @@ async def _migrate_units(
 
         impacted = [by_id[i] for i in impacted_units(unit_id, plan.units) if i in by_id]
 
-        async def write_status(target: UnitStatus, _unit_id: str = unit_id) -> None:
-            """Mirror the controller's status onto the run document.
-
-            The controller has already validated the transition, so this writes
-            through rather than re-validating. Without it the run document would
-            never see `verifying`, and the worker's own `migrating -> passed` would
-            be rejected by the state machine.
-            """
-            for state in run.units:
-                if state.unit_id == _unit_id:
-                    state.status = target
-                    break
-            await _save(run)
-
         controller = UnitControllerImpl(
             run.run_id, unit, impacted,
             repository_id=run.repository_id,
             base_revision=accepted_revision,
             max_patch_attempts=settings.max_patch_attempts,
-            on_status_change=write_status,
         )
+
+        async def write_status(
+            target: UnitStatus,
+            _unit_id: str = unit_id,
+            _controller: UnitControllerImpl = controller,
+        ) -> None:
+            """Mirror the controller's status and attempt count onto the run document.
+
+            The controller has already validated the transition, so this writes
+            through rather than re-validating. Without it the run document would
+            never see `verifying`, and the worker's own `migrating -> passed` would
+            be rejected by the state machine.
+
+            `attempts` is written here too (#32). It used to be set only after the
+            session ended, so the summary said `repairing` with `attempts: 0` for the
+            whole of a repair - a minute of it for `storage.py` in `run_eb826f4da0d5`.
+
+            Both the unit id and the controller are bound as defaults rather than
+            captured: this runs inside the loop over units, so a closure would read
+            whichever unit the loop had reached by the time it fired.
+            """
+            for state in run.units:
+                if state.unit_id == _unit_id:
+                    state.status = target
+                    state.attempts = _controller.attempts_used
+                    break
+            await _save(run)
+
+        controller.set_status_callback(write_status)
 
         await _run_unit_session(run, plan, unit, controller)
 
@@ -532,10 +633,13 @@ async def _fail(run: RunSummary, error: str) -> None:
     # straight out of GET /runs/{id} - the API is a read path like any other.
     run.error = events.truncate(events.redact(error))
     await _save(run)
-    await _transition(run, "failed")
+    # The error event before the terminal transition (#16): a client that polls only
+    # while the run is non-terminal, as §9.3 says, would otherwise stop without ever
+    # seeing why the run failed.
     await events.append_event(
         run.run_id, "error", payload={"code": "RUN_FAILED", "message": error}
     )
+    await _transition(run, "failed")
 
 
 async def _is_cancelled(run: RunSummary) -> bool:
@@ -555,7 +659,7 @@ async def _is_cancelled(run: RunSummary) -> bool:
     # in the journal - writing straight onto the document would leave the audit
     # trail (T-15) claiming those units were still running.
     for state in list(run.units):
-        if state.status not in {"passed", "blocked", "failed", "skipped"}:
+        if state.status not in TERMINAL_UNIT_STATUSES:
             await _set_unit(run, state.unit_id, "skipped")
             await events.append_event(
                 run.run_id, "unit_blocked", unit_id=state.unit_id,
@@ -563,9 +667,10 @@ async def _is_cancelled(run: RunSummary) -> bool:
                          "verification_id": None},
             )
 
-    await _transition(run, "cancelled")
+    # The closing event before the terminal transition (#16), as in `_fail`.
     await events.append_event(
         run.run_id, "error",
         payload={"code": "RUN_CANCELLED", "message": "cancelled by request"},
     )
+    await _transition(run, "cancelled")
     return True
