@@ -24,19 +24,19 @@ old and new on the same inputs, and compares every output.
 
 ## 1. Import — 0:22
 
-Axolotl takes any Python project. This one is bundled, so the demo runs anywhere.
+Axolotl takes any Python project.
 
 Point it at your own and it's parsed, never executed — only an exact content-hash match
 runs.
 
-## 2. Graph — 0:35
+## 2. Graph — 0:32
 
 Python's `ast` reads the source — no import, no execution.
 
 Modules, symbols and edges go into Atlas. That order becomes the migration order:
 dependencies first, so a failure stays local.
 
-## 3. Plan and approval — 0:48
+## 3. Plan and approval — 0:46
 
 Gemini proposed this order. Our code checks it really is dependency-first.
 

@@ -20,7 +20,7 @@ old and new on the same inputs, and compares every output.
 
 **Caroline** — *Steps 1–3, 0:22*
 
-Axolotl takes any Python project. This one is bundled, so the demo runs anywhere.
+Axolotl takes any Python project.
 
 Point it at your own and it's parsed, never executed — only an exact content-hash match
 runs.
@@ -101,8 +101,8 @@ That's trusting an AI, versus checking it.
 
 | Speaker | Section | Seconds | Words |
 |---|---|---|---|
-| Dev | Intro | 22 | 49 |
-| Caroline | Steps 1–3 | 38 | 82 |
+| Dev | Intro | 22 | 50 |
+| Caroline | Steps 1–3 | 38 | 74 |
 | Abhay | Steps 4–5 | 40 | 85 |
 | William | Steps 6–7 | 28 | 62 |
 | Dev | Steps 8–9 | 34 | 72 |
@@ -111,3 +111,6 @@ That's trusting an AI, versus checking it.
 Dev has 56 seconds across two turns; William has the shortest run at 28. Abhay carries
 both bounty moments, search and the Ask pane, in one 40-second block — the one worth
 rehearsing twice.
+
+Caroline's block is the slowest-paced of the six, at 117 words a minute, because it
+ends on two clicks and the start of the run. That slack is deliberate; do not fill it.

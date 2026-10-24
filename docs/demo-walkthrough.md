@@ -37,9 +37,9 @@ and a half between them, and do not rush the second: it carries the whole claim.
 
 | Time | Click / show | Words | Why it earns the time |
 |---|---|---|---|
-| 0:22–0:35 | **New migration.** The bundled demo project is already selected. Point at the upload option beside it | §1 Import | **Encode: permissions.** The trust gate is the first thing a judge sees, before anything runs |
-| 0:35–0:48 | **Graph.** Click one module, follow an import edge | §2 Graph | **Novel.** The dependency graph is not decoration — it controls the order of work |
-| 0:48–1:00 | **Plan.** Scroll the dependency order, then **Approve**, then **Start migration** | §3 Plan and approval | **Encode: human approval**, enforced outside the model. **The run starts here and keeps running** |
+| 0:22–0:32 | **New migration.** The bundled demo project is already selected. Point at the upload option beside it | §1 Import | **Encode: permissions.** The trust gate is the first thing a judge sees, before anything runs |
+| 0:32–0:46 | **Graph.** Click one module, follow an import edge | §2 Graph | **Novel.** The dependency graph is not decoration — it controls the order of work |
+| 0:46–1:00 | **Plan.** Scroll the dependency order, then **Approve**, then **Start migration** | §3 Plan and approval | **Encode: human approval**, enforced outside the model. **The run starts here and keeps running** |
 | 1:00–1:20 | **Search.** Query `get the final amount` in **keyword**, then switch to **hybrid** | §4 Search | **MongoDB bounty, the strongest 20 seconds we have.** Atlas Search, Vector Search and native fusion, with the difference visible on screen |
 | 1:20–1:40 | **Ask pane**, same screen. Ask "where is castling decided?" | §5 Ask | **Both bounties at once.** Gemini tool use over Atlas hybrid search, with the evidence shown rather than asserted |
 | 1:40–1:52 | **Docs**, then **Dependencies** | §6 Docs and dependencies | Breadth. Two screens, one sentence each; do not linger |
@@ -58,7 +58,7 @@ The transcript is 392 spoken words across 180 seconds: **131 words a minute**, a
 normal demo pace of 130 to 150. Every individual beat sits between 110 and 140. If one
 feels rushed, the cause is a skipped pause rather than too many words.
 
-The slackest beat is 0:48 to 1:00, at 110 — and that is correct, because it is two clicks
+The slackest beat is 0:46 to 1:00, at 94 — and that is correct, because it is two clicks
 and waiting for the run to actually start. Do not fill that silence.
 
 These numbers were measured from the transcript, not estimated. Re-measure if the words
