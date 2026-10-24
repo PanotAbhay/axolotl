@@ -31,6 +31,7 @@ const UiPreview = import.meta.env.DEV ? lazy(() => import('@/dev/UiPreview')) : 
 const GraphScreen = lazy(() => import('@/screens/GraphScreen'));
 const RunScreen = lazy(() => import('@/screens/RunScreen'));
 const VerificationScreen = lazy(() => import('@/screens/VerificationScreen'));
+const SearchScreen = lazy(() => import('@/screens/SearchScreen'));
 
 function Shell() {
   const repoId = useMatch('/repos/:repoId/*')?.params.repoId;
@@ -107,16 +108,6 @@ function RepoLayout() {
   );
 }
 
-// ponytail: placeholder until each screen lands (steps 2-6); delete with the last one.
-function Pending({ screen }: { screen: string }) {
-  return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
-      <h1 className="text-2xl leading-tight font-semibold">{screen}</h1>
-      <p className="text-muted-foreground">This screen isn’t built yet.</p>
-    </main>
-  );
-}
-
 function NotFound() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
@@ -140,7 +131,7 @@ export default function App() {
           <Route path="run" element={<Suspense><RunScreen /></Suspense>} />
           <Route path="run/:unitId" element={<Suspense><VerificationScreen /></Suspense>} />
           <Route path="report" element={<ReportScreen />} />
-          <Route path="search" element={<Pending screen="Search" />} />
+          <Route path="search" element={<Suspense><SearchScreen /></Suspense>} />
         </Route>
         {UiPreview && <Route path="dev/ui" element={<Suspense><UiPreview /></Suspense>} />}
         <Route path="*" element={<NotFound />} />

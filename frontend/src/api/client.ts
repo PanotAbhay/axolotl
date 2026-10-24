@@ -21,6 +21,8 @@ import type {
   RunReport,
   RunSummary,
   RuntimeInfo,
+  SearchMode,
+  SearchResults,
   SystemStatus,
   UnitDetail,
 } from '../types/contracts';
@@ -140,6 +142,11 @@ export function getRuntime(repoId: string): Promise<RuntimeInfo> {
 /** GET /api/v1/repositories/{repo_id}/index - search indexing progress after an import (#28). */
 export function getIndexStatus(repoId: string): Promise<IndexStatus> {
   return apiFetch<IndexStatus>(`${repo(repoId)}/index`);
+}
+
+/** GET /api/v1/repositories/{repo_id}/search - 503 SEARCH_INDEX_NOT_READY while an index builds, never an empty result. */
+export function searchRepository(repoId: string, q: string, mode: SearchMode): Promise<SearchResults> {
+  return apiFetch<SearchResults>(`${repo(repoId)}/search?${new URLSearchParams({ q, mode })}`);
 }
 
 const post = <T>(path: string, body?: unknown) =>

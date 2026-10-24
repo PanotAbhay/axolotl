@@ -203,6 +203,13 @@ export interface SearchHit {
   kind?: SymbolKind | null;
 }
 
+/** GET /repositories/{id}/search. Hybrid falls back to keyword when vector search is unavailable, so mode_used can differ from the mode asked for. */
+export interface SearchResults {
+  mode_used: SearchMode;
+  native_hybrid: boolean;
+  hits: SearchHit[];
+}
+
 // ---------- planning ----------
 export interface MigrationTarget {
   target_id: string;
