@@ -74,7 +74,7 @@ function RepoLayout() {
   return (
     <>
       <nav aria-label="Repository" className="flex h-10 flex-none items-stretch gap-4 border-b bg-card px-4">
-        <div className="flex gap-1 overflow-x-auto">
+        <div className="flex gap-1 overflow-x-auto overflow-y-hidden">
           {TABS.map(({ label, path, needsRun }) =>
             needsRun && !params.get('run') ? (
               <Tooltip key={label}>
