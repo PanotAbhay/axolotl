@@ -21,6 +21,8 @@ MAX_DEPTH = 12
 MAX_COMPRESSION_RATIO = 100                # a single member; bomb heuristic
 
 # Never copied into a snapshot: noise, build output, or secrets.
+# Copied in frontend/src/lib/folder.ts, which filters uploads in the browser.
+# Change both together and tell Dev 5.
 IGNORED_DIRECTORIES = frozenset({
     ".git", ".hg", ".svn", "__pycache__", "node_modules", ".venv", "venv",
     "env", ".tox", ".mypy_cache", ".pytest_cache", ".ruff_cache", "dist",
