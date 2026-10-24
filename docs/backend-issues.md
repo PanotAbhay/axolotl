@@ -1,9 +1,10 @@
 # Notes from Dev 5: backend issues found from the frontend
 
 Items 1–3 (23 Oct 2026) came up while folding Dev 1's explorer into the main screens. Items 4–8
-(24 Oct 2026) came up while building the Plan and Run screens against Atlas Local. Item 1 is fixed
-on main (`edd19ea`); nothing else here is fixed in the backend yet. Where the frontend works around
-an issue, the item says so.
+(24 Oct 2026) came up while building the Plan and Run screens against Atlas Local, and items 9–13
+(24 Oct 2026) while building the run timeline and checking the endpoints the Diff and Report screens
+need. Item 1 is fixed on main (`edd19ea`); nothing else here is fixed in the backend yet. Where the
+frontend works around an issue, the item says so.
 
 | # | Issue | Owner | Blocks the demo? |
 |---|---|---|---|
@@ -17,6 +18,9 @@ an issue, the item says so.
 | 8 | Questions | Dev 2 | No |
 | 9 | Importing chess takes minutes because of search indexing | Dev 1, Dev 3 | Only if chess is uploaded live |
 | 10 | A unit's `attempts` reads 0 until the unit ends | Dev 2 | No, the frontend works around it |
+| 11 | The diff has no baseline, so every file reads as new | Dev 4 | Yes: the diff at 2:35 in the demo, and the report's changed files |
+| 12 | The unit endpoint returns no verifications | Dev 2 | The Diff screen's per-case table |
+| 13 | Nothing fills the report's runtime timings | Dev 4, Dev 2 | No, the Report hides the runtime panel |
 
 ## 1. The runtime endpoint returns 500 for repos imported on another machine
 
@@ -192,3 +196,46 @@ for a minute with `attempts: 0`, so the Run screen's header and graph said "Atte
 The frontend works around it: while a unit runs, it takes the highest `attempt` from the unit's
 events, and counts a repair as the next attempt. Suggested fix: set `state.attempts` from
 `controller.attempts_used` in `write_status` as well, so the summary is right during the run.
+
+## 11. The diff has no baseline, so every file reads as new (Dev 4)
+
+`diff()` in [workspaces.py:193](../backend/app/sandbox/workspaces.py) reads the old side from
+`WORKSPACE_ROOT/runs/{run_id}/rev_baseline/`, which is never created. A run's folder holds only its
+own revisions (for `run_bb0da2e79534`: `rev_9db26cbee19c`, `rev_a55b1d7b0168`, `rev_ba0dac6be1b7`,
+`rev_9609090a4a3c`). Every old file reads as empty, so:
+
+- `GET /runs/run_bb0da2e79534/diff?unit_id=unit_pricing` returns `old_content: ""` and a unified
+  diff of `@@ -0,0 +1,113 @@`. The Diff screen would show all 113 lines of `pricing.py` as added.
+- The report's `changed_files` lists all 9 files in the tree, including `README.md`,
+  `tests/cases.json` and `tests/test_baseline.py`, though only `customers.py` and `pricing.py`
+  were migrated. [builder.py:193](../backend/app/reports/builder.py) (Dev 2) uses the same diff.
+
+The function's docstring says the baseline is "located through the run's own first revision
+directory when present", but the code doesn't do that. Suggested fix: resolve `rev_baseline` to the
+run's starting tree (the repository snapshot in `WORKSPACE_ROOT/snapshots/{repo_id}`, or the first
+revision directory), and add a test that an unchanged file is not in the diff.
+
+Until then, the Diff screen can take the old side from the module source endpoint.
+
+## 12. The unit endpoint returns no verifications (Dev 2)
+
+`GET /runs/{run_id}/units/{unit_id}` always returns `"verifications": []`
+([plans_runs.py:119](../backend/app/api/plans_runs.py)), with the comment "Dev 4 owns
+verification_results; read when it lands". It has landed: `list_verifications` is in
+[verification/store.py:81](../backend/app/verification/store.py). For `unit_pricing` in
+`run_bb0da2e79534` the endpoint returns no verifications, though `ver_dd3750652173` passed.
+
+The Diff screen needs them for the gate table, the attempt history and the per-case old and new
+outputs. The frontend can rebuild gates and attempts from the events, but the per-case comparisons
+are only in the verification results. Suggested fix: return `list_verifications(run_id, unit_id)`
+there, with held-out values redacted the same way as the counterexamples.
+
+## 13. Nothing fills the report's runtime timings (Dev 4, Dev 2)
+
+`RunReport.performance` (SHARED_CONTRACTS, `PerformanceSummary` and `UnitTiming`) is always
+`null`: nothing in the backend times cases or sets the field. The Report screen was going to show a
+before/after runtime comparison per unit.
+
+Question: will the verifier time each case on the old and new code (Dev 4), and the report builder
+fill `performance` (Dev 2)? If not, the Report leaves the runtime panel out instead of showing
+"not measured" for every unit.
