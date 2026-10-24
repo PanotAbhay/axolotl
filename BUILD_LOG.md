@@ -1595,3 +1595,23 @@ with `name=my-project` was saved as `chess`. Each parameter now has its own defa
 and `test_a_zip_upload_keeps_its_project_name` pins it.
 
 560 offline backend tests (16 new), ruff clean. No frontend changes.
+
+---
+
+## Dev 1: the runtime endpoint no longer fails on other machines
+
+Item 1 in [docs/notes-for-dev1.md](docs/notes-for-dev1.md), from Dev 5.
+
+- **The bug.** Snapshots stay on the machine that imported them
+  (`WORKSPACE_ROOT/snapshots/{repo_id}`), but the repository record is in the shared Atlas
+  database. On any other machine, `inspect_runtime` called `root.iterdir()` on a missing
+  directory, and `GET /repositories/{id}/runtime` answered 500. The Overview showed
+  "Couldn't read the package metadata: Unexpected FileNotFoundError".
+- **The fix.** `inspect_runtime` returns the normal shape when the snapshot is missing:
+  `declared_python: null`, no evidence, `runtime_verified: false`, and a note that the
+  source isn't on this machine. The guard is in `inspect_runtime`, not the route, so every
+  caller gets it. `/symbols/{id}` already handles the same case with a warning.
+- **No contract change.** The response shape is unchanged; the Overview already shows
+  `null` as "Not declared" with the note under it.
+
+562 offline backend tests (2 new), ruff clean. No frontend changes.

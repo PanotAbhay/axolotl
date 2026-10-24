@@ -73,4 +73,11 @@ async def test_runtime_endpoint_missing_snapshot(client, monkeypatch, tmp_path):
     body = response.json()
     assert body["declared_python"] is None
     assert body["evidence"] == []
-    assert "not on this machine" in body["note"]
+    assert "isn't on this machine" in body["note"]
+
+
+def test_missing_snapshot_returns_unknown(tmp_path):
+    result = inspect_runtime(tmp_path / "missing")
+    assert result["declared_python"] is None
+    assert result["evidence"] == []
+    assert result["runtime_verified"] is False

@@ -14,8 +14,8 @@ def inspect_runtime(root: Path) -> dict:
             "evidence": [],
             "runtime_verified": False,
             "note": (
-                "Package metadata unavailable: this repository's snapshot is not on this "
-                "machine. Re-import the repository here to read it."
+                "The source isn't on this machine: snapshots stay on the machine that "
+                "imported them. Import the repository again here to read its metadata."
             ),
         }
     evidence = []
