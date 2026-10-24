@@ -3,7 +3,8 @@
 The script is [demo-transcript.md](demo-transcript.md); this is the same words, split by
 speaker. Delivery rules are in [demo-walkthrough.md](demo-walkthrough.md).
 
-Dev speaks twice — the intro and steps 8–9. Caroline approves the plan in step 3, which
+Dev speaks twice — the intro and steps 8–9. Moe's outro names both sponsor tracks,
+so it is the one place a wrong word costs a judge's attention. Caroline approves the plan in step 3, which
 is why step 7 says "we approved the plan" and not "I".
 
 ---
@@ -54,7 +55,7 @@ so rather than inventing.
 
 ---
 
-**William** — *Steps 6–7, 1:40*
+**William** — *Steps 6–7, 1:39*
 
 Documentation, generated for the legacy and the migrated code, side by side.
 
@@ -70,7 +71,7 @@ A patch stays a proposal until the gates pass.
 
 ---
 
-**Dev** — *Steps 8–9, 2:08*
+**Dev** — *Steps 8–9, 2:07*
 
 This is the whole point.
 
@@ -86,14 +87,15 @@ The migrated project downloads here — code, report and evidence.
 
 ---
 
-**Moe** — *Outro, 2:42*
+**Moe** — *Outro, 2:40*
 
 Nothing you saw was mocked. Real containers, real cases.
 
-Axolotl never claims your code is equivalent. It claims agreement on what it tested —
-and hands you every case, gate and counterexample behind that claim.
+Gemini planned and patched. Atlas held the graph, the search and the evidence. An
+independent verifier decided what passed.
 
-That's trusting an AI, versus checking it.
+Axolotl claims agreement on what it tested, never equivalence. That's trusting an AI,
+versus checking it.
 
 ---
 
@@ -103,13 +105,13 @@ That's trusting an AI, versus checking it.
 |---|---|---|---|---|
 | Dev | Intro | 22 | 50 | 136 |
 | Caroline | Steps 1–3 | 38 | 77 | 122 |
-| Abhay | Steps 4–5 | 40 | 87 | 130 |
+| Abhay | Steps 4–5 | 39 | 87 | 134 |
 | William | Steps 6–7 | 28 | 62 | 133 |
-| Dev | Steps 8–9 | 34 | 71 | 125 |
-| Moe | Outro | 18 | 42 | 140 |
+| Dev | Steps 8–9 | 33 | 71 | 129 |
+| Moe | Outro | 20 | 44 | 132 |
 
-Dev has 56 seconds across two turns; William has the shortest run at 28. Abhay carries
-both bounty moments, search and the Ask pane, in one 40-second block — the one worth
+Dev has 55 seconds across two turns; William has the shortest run at 28. Abhay carries
+both bounty moments, search and the Ask pane, in one 39-second block — the one worth
 rehearsing twice.
 
 Caroline's block is the slowest of the six, and it ends on two clicks and the start of

@@ -52,7 +52,7 @@ Keyword search returns the wrong function — our identifier analyser splits nam
 Vector search finds it by meaning instead. Atlas fuses both with rank fusion, and the
 badge confirms it ran natively, inside the database.
 
-## 5. Ask — 1:19
+## 5. Ask — 1:18
 
 The same hybrid search, now as retrieval for Gemini.
 
@@ -64,14 +64,14 @@ so rather than inventing.
 
 ---
 
-## 6. Docs and dependencies — 1:40
+## 6. Docs and dependencies — 1:39
 
 Documentation, generated for the legacy and the migrated code, side by side.
 
 And every dependency the migration changed — including the ones carrying known
 vulnerabilities.
 
-## 7. Run — 1:52
+## 7. Run — 1:51
 
 This has been running since we approved the plan.
 
@@ -82,7 +82,7 @@ A patch stays a proposal until the gates pass.
 
 ---
 
-## 8. Verification — 2:08
+## 8. Verification — 2:07
 
 This is the whole point.
 
@@ -91,7 +91,7 @@ Twenty-four recorded cases. Twelve the model can see; twelve it never will.
 The visible twelve pass. A held-out case fails — and that's what blocks it. The agent
 gets the counterexample, never the hidden input. Then it tries again.
 
-## 9. Report — 2:29
+## 9. Report — 2:28
 
 The verdict, the diff, and the caveat: agreement on the cases it tested, never proof of
 equivalence.
@@ -100,11 +100,12 @@ The migrated project downloads here — code, report and evidence.
 
 ---
 
-## Outro — 2:42
+## Outro — 2:40
 
 Nothing you saw was mocked. Real containers, real cases.
 
-Axolotl never claims your code is equivalent. It claims agreement on what it tested —
-and hands you every case, gate and counterexample behind that claim.
+Gemini planned and patched. Atlas held the graph, the search and the evidence. An
+independent verifier decided what passed.
 
-That's trusting an AI, versus checking it.
+Axolotl claims agreement on what it tested, never equivalence. That's trusting an AI,
+versus checking it.
