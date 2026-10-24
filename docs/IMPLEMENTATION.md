@@ -217,7 +217,7 @@ icons and IBM Plex, following the template in [`design/`](design/).
 ## 8. Known gaps
 
 - A unit with no visible behaviour cases can never pass verification, so `legacy_orders`
-  stops at 2 of 6 units (item 4 in [`notes-for-dev1.md`](notes-for-dev1.md)).
+  stops at 2 of 6 units (item 4 in [`backend-issues.md`](backend-issues.md)).
 - Report and Search screens are not built.
 - The chess demo needs dual-runtime sandbox selection, behaviour cases and target
   registration.

@@ -1546,7 +1546,7 @@ icons and IBM Plex. The system status chips sit in the app bar on every screen.
 
 Dev 1's `/explorer` is folded into these screens and deleted along with `App.css`. The
 runtime endpoint's 500 and what blocks a chess 2.7 → 3.14 run are in
-[docs/notes-for-dev1.md](docs/notes-for-dev1.md).
+[docs/backend-issues.md](docs/backend-issues.md).
 
 Plan, Run, Report and Search are placeholders until their steps land. Lint, build and five
 vitest tests pass. Monaco is a 2.7 MB chunk loaded only when the inspector expands, so the
@@ -1600,7 +1600,7 @@ and `test_a_zip_upload_keeps_its_project_name` pins it.
 
 ## Dev 1: the runtime endpoint no longer fails on other machines
 
-Item 1 in [docs/notes-for-dev1.md](docs/notes-for-dev1.md), from Dev 5.
+Item 1 in [docs/backend-issues.md](docs/backend-issues.md), from Dev 5.
 
 - **The bug.** Snapshots stay on the machine that imported them
   (`WORKSPACE_ROOT/snapshots/{repo_id}`), but the repository record is in the shared Atlas

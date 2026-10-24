@@ -1,12 +1,13 @@
 # Notes from Dev 5: backend issues found from the frontend
 
 Items 1–3 (23 Oct 2026) came up while folding Dev 1's explorer into the main screens. Items 4–8
-(24 Oct 2026) came up while building the Plan and Run screens against Atlas Local. Nothing here is
-fixed in the backend. Where the frontend works around an issue, the item says so.
+(24 Oct 2026) came up while building the Plan and Run screens against Atlas Local. Item 1 is fixed
+on main (`edd19ea`); nothing else here is fixed in the backend yet. Where the frontend works around
+an issue, the item says so.
 
 | # | Issue | Owner | Blocks the demo? |
 |---|---|---|---|
-| 1 | The runtime endpoint returns 500 on other machines | Dev 1 | No |
+| 1 | The runtime endpoint returns 500 on other machines | Dev 1 | Fixed in `edd19ea` |
 | 2 | Chess can't be migrated from 2.7 to 3.14 yet | Dev 2, Dev 3, Dev 4 | The chess demo |
 | 3 | The explorer is now part of screens 01–04 | Dev 1 | No |
 | 4 | Units with no visible cases can never pass | Dev 4 | Yes: `legacy_orders` ends at 2 of 6 units |
@@ -14,8 +15,11 @@ fixed in the backend. Where the frontend works around an issue, the item says so
 | 6 | A run turns terminal before its last event | Dev 2 | No, the frontend works around it |
 | 7 | Interrupted runs keep their running unit states | Dev 2 | No |
 | 8 | Questions | Dev 2 | No |
+| 9 | Importing chess takes minutes because of search indexing | Dev 1, Dev 3 | Only if chess is uploaded live |
 
 ## 1. The runtime endpoint returns 500 for repos imported on another machine
+
+Fixed by Dev 1 in `edd19ea`: a missing snapshot now returns a note instead of a 500.
 
 `GET /api/v1/repositories/{id}/runtime` reads the snapshot directory. Snapshots exist only
 on the machine that imported them (`WORKSPACE_ROOT/snapshots/{repo_id}`), but the
@@ -159,3 +163,19 @@ Suggested fix: do what cancellation does. Move each unfinished unit to `skipped`
   "Not in the MVP: needs a Python 2 runtime in the sandbox."?
 - **A run cancelled before final verification gets no report.** Is that intended? If yes, the
   Report screen will say there is no report for the run, instead of waiting for one.
+
+## 9. Importing chess takes minutes because of search indexing (Dev 1, Dev 3)
+
+`POST /repositories/import` responds only after search indexing has finished:
+[ingestion/\_\_init\_\_.py:216](../backend/app/ingestion/__init__.py) awaits `index_repository`,
+which has Argon describe every chunk and then embeds them. On 24 Oct, uploading the `demo/chess`
+folder (16 files, 122 chunks) through the UI held the request for more than 2 minutes. The import
+then completed correctly (`folder_upload`, 15 modules, 122 chunks described and embedded).
+
+The frontend has no request timeout, so the screen just shows "Importing…" until it finishes. In a
+3-minute demo that is too long to wait on stage.
+
+Suggested fix: save the repository and respond first, then index in the background, and show
+indexing progress in `GET /system/status` or on the repository record. A cheaper option is to
+skip the Argon descriptions at import time and add them when `POST /repositories/{id}/index` is
+called.
