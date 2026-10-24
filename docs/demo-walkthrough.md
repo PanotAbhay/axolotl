@@ -51,6 +51,82 @@ divide them however suits the team.
 > That is the difference between trusting an AI with your legacy code, and being able
 > to check it."
 
+## Delivery
+
+The script is 341 spoken words in 180 seconds: **114 words a minute**, against a normal
+demo pace of 130 to 150. That headroom is the point. If a run feels rushed, the cause is
+almost always skipped pauses rather than too many words.
+
+The tightest beat is the opening, at 132 wpm. The slackest is 0:42 to 1:00, at 67 — and
+that one is correct, because it is two clicks and waiting for the run to actually start.
+Do not fill that silence.
+
+### Pauses
+
+- **Comma: a quarter beat.** Enough for a breath, not enough to land.
+- **Full stop: a full beat**, about half a second to a second.
+- **Em dash: longer than a comma.** It is a pivot, so let the turn register.
+- **Between paragraphs in the intro and outro: a second and a half.** Those two are
+  the only places in the demo where silence is doing work.
+- Never breathe mid-phrase for air. The sentences are short enough that you will not
+  run out; if you do, you are going too fast.
+
+### Clicking and speaking
+
+This is where demos are usually lost.
+
+- **Click first, then speak.** Eyes follow the cursor, and for about half a second
+  after a click nobody is listening. A sentence spoken over your own click is a
+  sentence nobody heard.
+- **Let the screen land before the sentence that explains it.** The explanation should
+  arrive to a picture that is already there.
+- **Never narrate the click.** Not "now I'll click Search" — say what it means. The
+  judges can see the cursor; they cannot see the reasoning.
+
+### Emphasis
+
+One stressed word per sentence, not three. Everything stressed is nothing stressed.
+
+The words carrying the argument are: *independent*, *never seen*, *native*, *actually
+read*, *agreement*. Those are the claims. Land them and let the rest run flat.
+
+### Saying the technical bits
+
+| On screen | Say |
+|---|---|
+| `native_hybrid` | "native hybrid" — never "underscore" |
+| `$rankFusion` | "rank fusion" |
+| `path:line` | "path and line" |
+| `run_70e126c3acf2` | "run seventy-e-one" and stop. Never read a hash aloud |
+| `12 visible, 12 held out` | "twelve visible, twelve held out" — numbers under a hundred are words |
+
+### The one line that is fixed wording
+
+> "agreement on the cases it tested, never proof of equivalence"
+
+Say it exactly. This is the claim the entire project rests on, and every loose paraphrase
+of it overclaims. "It proves the code is the same" is the one sentence that could lose
+the room, and it is an easy thing to say by accident at speed.
+
+### Handing over
+
+Five speakers, four handoffs, at 0:15, 1:00, 1:40, 2:10 and 2:35.
+
+- **The incoming speaker starts on the new screen**, not the outgoing one. The click is
+  the handoff.
+- **One beat of silence**, no overlap. Two voices at once reads as a mistake even when
+  it is planned.
+- **Do not announce it.** Never "and now Caroline will show you the search". Just
+  continue the sentence the demo is making.
+
+### When something goes wrong
+
+- **Say what is actually on screen, in the present tense.** "This is still verifying" is
+  fine. "It usually finishes by now" invites the question you do not want.
+- **Silence beats filler.** Two seconds of a screen loading is invisible. Two seconds of
+  "um, it is just loading" is not.
+- Never apologise for the software mid-demo. State it, move, carry on.
+
 ## What has to be true before the clock starts
 
 - **Docker running, all five images built** (`README`, Quick start). Both the live run
